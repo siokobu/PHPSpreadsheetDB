@@ -1,0 +1,29 @@
+{
+  "name": "siokobu/phpspreadsheetdb",
+  "description": "Library for DB Operation using SpreadSheet",
+  "minimum-stability": "stable",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "tomocky1",
+      "email": "siokobu8400@gmail.com"
+    }
+  ],
+  "require": {
+    "phpoffice/phpspreadsheet" : "~1.0",
+    "ext-sqlsrv": "*"
+  },
+  "require-dev" : {
+    "phpunit/phpunit" : "^9.5"
+  },
+  "autoload" : {
+    "psr-4" : {
+      "PHPSpreadsheetDB\\" : "src/"
+    }
+  },
+  "autoload-dev" : {
+    "psr-4" : {
+      "PHPSpreadsheetDBTest\\" : "tests/"
+    }
+  }
+}
