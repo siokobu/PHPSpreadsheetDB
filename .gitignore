@@ -1,2 +1,4 @@
 /vendor/
 /tests/Spreadsheet/files/
+.phpunit.result.cache
+.idea/
