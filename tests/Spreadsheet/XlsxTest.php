@@ -13,7 +13,7 @@ class XlsxTest extends TestCase
 {
     public function testDeleteAllSheets()
     {
-        $path = "./XlsxTest_testDeleteAllSheets.xlsx";
+        $path = __DIR__."/docs/XlsxTest_testDeleteAllSheets.xlsx";
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, "hoge");
         $spreadsheet->addSheet($sheet, 0);
@@ -34,9 +34,10 @@ class XlsxTest extends TestCase
     {
         $table = "hogeTable";
         $columns = array( ['Name' => 'hoge', 'Type' => 0], ['Name' => 'fuga', 'Type' => 1]);
-        $path = "./XlsxTest_testCreateSheet.xlsx";
+        $path = __DIR__."/docs/XlsxTest_testCreateSheet.xlsx";
 
-        $spreadsheet = IOFactory::load($path);
+        if(file_exists($path)) unlink($path);
+        $spreadsheet = new Spreadsheet();
         $sheetNames = $spreadsheet->getSheetNames();
         foreach ($sheetNames as $sheetName) {
             $sheetIndex = $spreadsheet->getIndex($spreadsheet->getSheetByName($sheetName));
@@ -60,7 +61,7 @@ class XlsxTest extends TestCase
      */
     public function testSetTableDatas()
     {
-        $path = "./TestXlsx3.xlsx";
+        $path = __DIR__."/docs/XlsxTest_testSettableDatas1.xlsx";
         $table = "testtb";
 
         if(file_exists($path)) unlink($path);
@@ -76,12 +77,22 @@ class XlsxTest extends TestCase
         $xlsx = new Xlsx($path);
         $xlsx->setTableDatas($table, $datas);
 
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getSheetByName($table);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), 'col1');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), 'hoge');
+        $this->assertEquals($sheet->getCell('A3')->getValue(), 'foo');
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'col2');
+        $this->assertEquals($sheet->getCell('B2')->getValue(), 'fuga');
+        $this->assertEquals($sheet->getCell('B3')->getValue(), 'var');
+
     }
 
     /** @test */
     public function testGetAllTables()
     {
-        $path = "./Xlsx_GetAllTables.xlsx";
+        $path = __DIR__."/docs/Xlsx_GetAllTables.xlsx";
         $tables = ["tablez01", "tabley02", "tablex03"];
 
         if(file_exists($path)) unlink($path);
@@ -103,7 +114,7 @@ class XlsxTest extends TestCase
 
     public function testGetDatasFromTable()
     {
-        $path = "./Xlsx_GetDatasFromTable.xlsx";
+        $path = __DIR__."/docs/Xlsx_GetDatasFromTable.xlsx";
         $table = "tablez01";
 
         if(file_exists($path)) unlink($path);

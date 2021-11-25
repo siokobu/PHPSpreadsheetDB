@@ -52,7 +52,7 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
             ]
         ];
 
-        $path = "Xlsx_SQLSrv-ImportFromSpreadsheet.xlsx";
+        $path = __DIR__."/Spreadsheet/docs/Xlsx_SQLSrv-ImportFromSpreadsheet.xlsx";
 
         if(file_exists($path)) unlink($path);
         $sourceSS = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
