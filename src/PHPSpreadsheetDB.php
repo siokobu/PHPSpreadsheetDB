@@ -10,13 +10,19 @@ use PHPSpreadsheetDB\Spreadsheet\Spreadsheet;
  */
 class PHPSpreadsheetDB {
 
-    private $pdo;
-
+    /** @var DB 接続対象のDBオブジェクトを保管する */
     private $db;
 
+    /** @var Spreadsheet インポート・エクスポート対象となるExcelなどのスプレッドシートオブジェクトを保持する */
     private $spreadsheet;
+
     /**
-     * コンストラクタ DSN・ユーザ名・パスワードを受け取り
+     * コンストラクタ．インポート・エクスポート対象となるデータベース・スプレッドシートを設定する．
+     * 現在サポートしているデータベース・スプレッドシートは以下の通り
+     * $db・・・Microsoft SQL Server(PHPSpreadsheetDB\DB\SQLSrv）
+     * $spread・・・Excel（PHPSpreadsheetDB\Spreadsheet\Xlsx）
+     * @param DB $db PHPSpreadsheetDB\DB\DBインターフェースを実装したDBクラス
+     * @param Spreadsheet $spreadsheet PHPSpreadsheetDB\Spreadsheet\Spreadsheetインターフェースを実装したクラス
      */
     public function __construct(DB $db, Spreadsheet $spreadsheet)
     {
@@ -24,12 +30,17 @@ class PHPSpreadsheetDB {
         $this->spreadsheet = $spreadsheet;
     }
 
+    /**
+     * スプレッドシートの内容をデータベースにインポートする．
+     * (new PHPSpreadsheetDB($db, $spreadsheet))->importFromSpreadsheet(); で実行することができる．
+     * @throws PHPSpreadsheetDBException
+     */
     public function importFromSpreadsheet()
     {
-        $tables = $this->spreadsheet->getAllTables();
+        $tables = $this->spreadsheet->getTableNames();
 
         foreach($tables as $table) {
-            $datas = $this->spreadsheet->getDatasFromTable($table);
+            $datas = $this->spreadsheet->getData($table);
 
             $this->db->insertData($table, $datas);
         }

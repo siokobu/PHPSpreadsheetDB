@@ -70,7 +70,7 @@ class SQLSrvTest extends TestCase
     }
 
     /** @test */
-    public function testInsertData()
+    public function testInsertData1()
     {
         $serverName = "SERV";
         $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
@@ -89,8 +89,10 @@ class SQLSrvTest extends TestCase
 
         $data = [
             ['primary_key', 'int_col', 'float_col', 'char_col', 'str_col', 'datetime_col'],
-            [1, 1, 3.14, 'abced', '日本語文字列',  '2021-01-01 00:00:00'],
-            [2, 2, 0.01, 'fghij', 'ひらがな文字列', '2050-12-31 00:00:00'],
+            ['1', '1', '3.14', 'abced', '日本語文字列',  '2021-01-01 00:00:00'],
+            ['2', null, null, null, null, null],
+            ['3', '', '', '', '', ''],
+            ['4', '2', '0.01', 'fghij', 'ひらがな文字列', '2050-12-31 00:00:00']
         ];
 
         $sqlSrv = new SQLSrv($serverName, $connectionInfo);
@@ -110,10 +112,28 @@ class SQLSrvTest extends TestCase
         $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [2]);
         $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
         $this->assertEquals($data[2][0],$row['primary_key']);
-        $this->assertEquals($data[2][1],$row['int_col']);
-        $this->assertEquals($data[2][2],$row['float_col']);
-        $this->assertEquals(str_pad($data[2][3],10),$row['char_col']);
-        $this->assertEquals($data[2][4],$row['str_col']);
-        $this->assertEquals($data[2][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
+        $this->assertEquals(null,$row['int_col']);
+        $this->assertEquals(null,$row['float_col']);
+        $this->assertEquals(null,$row['char_col']);
+        $this->assertEquals(null,$row['str_col']);
+        $this->assertEquals(null,$row['datetime_col']);
+
+        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [3]);
+        $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $this->assertEquals($data[3][0],$row['primary_key']);
+        $this->assertEquals(0,$row['int_col']);
+        $this->assertEquals(0,$row['float_col']);
+        $this->assertEquals('          ',$row['char_col']);
+        $this->assertEquals('',$row['str_col']);
+        $this->assertEquals('1900-01-01 00:00:00',date_format($row['datetime_col'], 'Y-m-d H:i:s'));
+
+        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [4]);
+        $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $this->assertEquals($data[4][0],$row['primary_key']);
+        $this->assertEquals($data[4][1],$row['int_col']);
+        $this->assertEquals($data[4][2],$row['float_col']);
+        $this->assertEquals(str_pad($data[4][3],10),$row['char_col']);
+        $this->assertEquals($data[4][4],$row['str_col']);
+        $this->assertEquals($data[4][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
     }
 }

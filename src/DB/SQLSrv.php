@@ -3,13 +3,14 @@
 namespace PHPSpreadsheetDB\DB;
 
 use PDO;
+use phpDocumentor\Reflection\Types\Resource_;
 use PHPSpreadsheetDB\DB\DB;
 use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 
 class SQLSrv implements DB
 {
     /**
-     * @var DBへのコネクション情報
+     * @var Resource_ DBへのコネクション情報
      */
     private $conn;
     /**
@@ -69,12 +70,16 @@ class SQLSrv implements DB
     }
 
     /**
-     * @throws PHPSpreadsheetDBException
+     * @inheritDoc
      */
     public function insertData($tableName, $data)
     {
         // Delete All Data.
-        sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';');
+        if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
+            $e = new PHPSpreadsheetDBException();
+            $e->sqlErrors = sqlsrv_errors();
+            throw $e;
+        }
 
         // Prepare Statement.
         $cols = "";

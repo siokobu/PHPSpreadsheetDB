@@ -88,36 +88,70 @@ class Xlsx implements Spreadsheet
     }
 
     /**
-     * @return array Extract All Worksheet Names.
-     * @throws Exception
+     * @inheritDoc
      */
-    public function getAllTables(): array
+    public function getTableNames(): array
     {
-        // 戻り値を配列で定義
-        $result = array();
+        try {
+            // 戻り値を配列で定義
+            $result = array();
 
-        // 対象となるExcelのすべてのシート名を取得
-        for($i=0; $i < $this->spreadsheet->getSheetCount(); $i++) {
-            $sheet = $this->spreadsheet->getSheet($i);
-            array_push($result, $sheet->getTitle());
+            // 対象となるExcelのすべてのシート名を取得
+            for ($i = 0; $i < $this->spreadsheet->getSheetCount(); $i++) {
+                $sheet = $this->spreadsheet->getSheet($i);
+                array_push($result, $sheet->getTitle());
+            }
+        } catch(Exception $e) {
+            throw new PHPSpreadsheetDBException($e);
         }
 
         return $result;
     }
 
     /**
-     * @throws Exception
+     * @inheritDoc
      */
-    public function getDatasFromTable($tableName)
+    public function getData(string $tableName): array
     {
-        $sheet = $this->spreadsheet->getSheetByName($tableName);
-        $rows = array();
-        for($i = 1; $i <= $sheet->getHighestRow(); $i++) {
-            $columns = array();
-            for ($j = 1; $j <= Coordinate::columnIndexFromString($sheet->getHighestColumn()); $j++) {
-                array_push($columns, $sheet->getCellByColumnAndRow($j, $i)->getValue());
+        try {
+            // worksheetオブジェクトを取得する
+            $sheet = $this->spreadsheet->getSheetByName($tableName);
+
+            // 戻り値用の配列を初期化
+            $rows = array();
+
+            // シートの一行目（カラム名行）を利用してカラム数を測定する
+            $highestColumn = 1;
+            while(true) {
+                $val = trim($sheet->getCellByColumnAndRow($highestColumn, 1)->getValue());
+                if(strlen($val) == 0) {
+                    $highestColumn = $highestColumn - 1;
+                    break;
+                } else {
+                    $highestColumn = $highestColumn + 1;
+                }
             }
-            array_push($rows, $columns);
+
+            // 最終行までデータの取得を繰り返す
+            for ($i = 1; $i <= $sheet->getHighestRow(); $i++) {
+
+                // 戻り値の $rows に格納するための $columns 配列を初期化
+                $columns = array();
+
+                // 最終列までデータの取得を繰り返し、$columns に格納していく
+                for ($j = 1; $j <= $highestColumn; $j++) {
+                    $val = $sheet->getCellByColumnAndRow($j, $i)->getValue();
+                    if($val == '<null>') $val = null;
+                    if(strlen($val) == 0) $val = "";
+                    array_push($columns, $val);
+                }
+
+                // 作成した １行分の配列 $columns を 戻り値 $rows に格納する
+                array_push($rows, $columns);
+            }
+
+        } catch(Exception $e) {
+            throw new PHPSpreadsheetDBException($e);
         }
 
         return $rows;

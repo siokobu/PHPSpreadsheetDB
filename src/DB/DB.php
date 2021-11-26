@@ -2,6 +2,8 @@
 
 namespace PHPSpreadsheetDB\DB;
 
+use PHPSpreadsheetDB\PHPSpreadsheetDBException;
+
 interface DB
 {
     /** @var int 数値型を表す定数 */
@@ -34,5 +36,12 @@ interface DB
      */
     public function getTableData(string $tableName): iterable;
 
+    /**
+     * "importFromSpreadsheet"で利用する．対象となるデータをデータベースにインポートする
+     * @param $tableName string インポート対象のテーブル
+     * @param $data array インポートするデータ
+     * @throws PHPSpreadsheetDBException DB登録時に発生したException
+     */
+    public function insertData(string $tableName, array $data);
 
 }

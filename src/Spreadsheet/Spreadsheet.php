@@ -2,6 +2,8 @@
 
 namespace PHPSpreadsheetDB\Spreadsheet;
 
+use PHPSpreadsheetDB\PHPSpreadsheetDBException;
+
 interface Spreadsheet
 {
     Const EXCEL = "EXCEL";
@@ -25,5 +27,18 @@ interface Spreadsheet
     
     public function deleteAllSheets();
 
-    public function getAllTables();
+    /**
+     * "importFromSpreadsheet"で利用する．スプレッドシートに記載のすべての登録対象となるテーブル名を配列として返す
+     * @return array テーブル名の配列
+     * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
+     */
+    public function getTableNames(): array;
+
+    /**
+     * "importFromSpreadsheet"で利用する．スプレッドシートから抽出した登録対象のデータを２×２配列で取得する
+     * @param $tableName string データを抽出したテーブル名
+     * @return array スプレッドシートから抽出したインポート用の２×２配列データ
+     * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
+     */
+    public function getData(string $tableName): array;
 }

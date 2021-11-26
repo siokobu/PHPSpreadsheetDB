@@ -105,16 +105,17 @@ class XlsxTest extends TestCase
         (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
 
         $xlsx = new Xlsx($path);
-        $tableNames = $xlsx->getAllTables();
+        $tableNames = $xlsx->getTableNames();
 
         $this->assertEquals($tables[0], $tableNames[0]);
         $this->assertEquals($tables[1], $tableNames[1]);
         $this->assertEquals($tables[2], $tableNames[2]);
     }
 
-    public function testGetDatasFromTable()
+    /** @test テスト */
+    public function testGetData1()
     {
-        $path = __DIR__."/docs/Xlsx_GetDatasFromTable.xlsx";
+        $path = __DIR__."/files/XlsxTest_testGetData1.xlsx";
         $table = "tablez01";
 
         if(file_exists($path)) unlink($path);
@@ -124,26 +125,91 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('B1', 'col2');
         $sheet->setCellValue('C1', 'col3');
         $sheet->setCellValue('A2', 'string');
-        $sheet->setCellValue('B2', 100);
+        $sheet->setCellValue('B2', '100');
         $sheet->setCellValue('C2', '2021/10/10');
         $sheet->setCellValue('A3', '2021/10/10 23:59:59');
-        $sheet->setCellValue('B3', true);
-        $sheet->setCellValue('C3', 3.14);
+        $sheet->setCellValue('B3', 'true');
+        $sheet->setCellValue('C3', '3.14');
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
         (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
 
         $xlsx = new Xlsx($path);
-        $datas = $xlsx->getDatasFromTable($table);
+        $datas = $xlsx->getData($table);
 
         $this->assertEquals('col1', $datas[0][0]);
         $this->assertEquals('col2', $datas[0][1]);
         $this->assertEquals('col3', $datas[0][2]);
         $this->assertEquals('string', $datas[1][0]);
-        $this->assertEquals(100, $datas[1][1]);
+        $this->assertEquals('100', $datas[1][1]);
         $this->assertEquals('2021/10/10', $datas[1][2]);
         $this->assertEquals('2021/10/10 23:59:59', $datas[2][0]);
-        $this->assertEquals(true, $datas[2][1]);
-        $this->assertEquals(3.14, $datas[2][2]);
+        $this->assertEquals('true', $datas[2][1]);
+        $this->assertEquals('3.14', $datas[2][2]);
     }
+
+    /** @test 一行目のカラム行に空文字列が混じっている場合のテスト */
+    public function testGetData2()
+    {
+        $path = __DIR__."/files/XlsxTest_testGetData2.xlsx";
+        $table = "tablez01";
+
+        if(file_exists($path)) unlink($path);
+        $spreadsheet = new Spreadsheet();
+        $sheet = new Worksheet($spreadsheet, $table);
+        $sheet->setCellValue('A1', 'col1');
+        $sheet->setCellValue('B1', 'col2');
+        $sheet->setCellValue('C1', ' ');
+        $sheet->setCellValue('A2', 'string');
+        $sheet->setCellValue('B2', '100');
+        $sheet->setCellValue('A3', '2021/10/10 23:59:59');
+        $sheet->setCellValue('B3', 'true');
+        $spreadsheet->addSheet($sheet);
+        $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+
+        $xlsx = new Xlsx($path);
+        $datas = $xlsx->getData($table);
+
+        $this->assertCount(2, $datas[0]);
+        $this->assertEquals('col1', $datas[0][0]);
+        $this->assertEquals('col2', $datas[0][1]);
+        $this->assertEquals('string', $datas[1][0]);
+        $this->assertEquals('100', $datas[1][1]);
+        $this->assertEquals('2021/10/10 23:59:59', $datas[2][0]);
+        $this->assertEquals('true', $datas[2][1]);
+    }
+
+    /** @test 一行目のカラム行に空文字列が混じっている場合のテスト */
+    public function testGetData3()
+    {
+        $path = __DIR__."/files/XlsxTest_testGetData3.xlsx";
+        $table = "tablez01";
+
+        if(file_exists($path)) unlink($path);
+        $spreadsheet = new Spreadsheet();
+        $sheet = new Worksheet($spreadsheet, $table);
+        $sheet->setCellValue('A1', 'col1');
+        $sheet->setCellValue('B1', 'col2');
+        $sheet->setCellValue('A2', 'string');
+        $sheet->setCellValue('B2', '<null>');
+        $sheet->setCellValue('C2', '不正な値');
+        $sheet->setCellValue('A3', '2021/10/10 23:59:59');
+        $sheet->setCellValue('B3', '');
+        $spreadsheet->addSheet($sheet);
+        $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+
+        $xlsx = new Xlsx($path);
+        $datas = $xlsx->getData($table);
+
+        $this->assertCount(2, $datas[0]);
+        $this->assertEquals('col1', $datas[0][0]);
+        $this->assertEquals('col2', $datas[0][1]);
+        $this->assertEquals('string', $datas[1][0]);
+        $this->assertEquals(null, $datas[1][1]);
+        $this->assertEquals('2021/10/10 23:59:59', $datas[2][0]);
+        $this->assertEquals('', $datas[2][1]);
+    }
+
 }
