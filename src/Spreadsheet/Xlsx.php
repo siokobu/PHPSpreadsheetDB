@@ -141,8 +141,11 @@ class Xlsx implements Spreadsheet
                 // 最終列までデータの取得を繰り返し、$columns に格納していく
                 for ($j = 1; $j <= $highestColumn; $j++) {
                     $val = $sheet->getCellByColumnAndRow($j, $i)->getValue();
-                    if($val == '<null>') $val = null;
-                    if(strlen($val) == 0) $val = "";
+                    if ($val == '<null>') {
+                        $val = null;
+                    } else if(strlen($val) == 0) {
+                        $val = "";
+                    }
                     array_push($columns, $val);
                 }
 

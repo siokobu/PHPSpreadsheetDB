@@ -13,14 +13,31 @@ class SQLSrv implements DB
      * @var Resource_ DBへのコネクション情報
      */
     private $conn;
+
     /**
      * PHPSpreadsheetDBで利用するためのDBオブジェクトを生成する
      * @param string <<サーバ名>>\\<<インスタンス名>> の形式でサーバ名を設定する
      * @param string array("Database" => "<<データベース名>>", "UID" => "<<ユーザ名>>", "PWD" => "<<パスワード>>"); の形式でログイン情報を設定する
+     * @throws PHPSpreadsheetDBException SQLServerへ接続できなかった場合にスローする
      */
     public function __construct($serverName, $connectionInfo)
     {
         $this->conn = sqlsrv_connect($serverName, $connectionInfo);
+
+        if(!$this->conn) {
+            $sqlErrors = sqlsrv_errors();
+            $message = "";
+            if($sqlErrors[0]['SQLSTATE'] == '28000') {
+                $message = "Invalid User, Password";
+            } else if ($sqlErrors[0]['SQLSTATE'] == '08001') {
+                $message = "Invalid Host";
+            } else {
+                $message = "Connection Error";
+            }
+            $e = new PHPSpreadsheetDBException($message);
+            $e->sqlErrors = $sqlErrors;
+            throw $e;
+        }
     }
 
 
@@ -76,8 +93,15 @@ class SQLSrv implements DB
     {
         // Delete All Data.
         if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
-            $e = new PHPSpreadsheetDBException();
-            $e->sqlErrors = sqlsrv_errors();
+            $sqlErrors = sqlsrv_errors();
+            $message = "";
+            if($sqlErrors[0]['SQLSTATE'] == '42S02') {
+                $message = "Invalid TableName. TableName:".$tableName;
+            } else {
+                $message = "Error while Deleting Data. tablename:".$tableName;
+            }
+            $e = new PHPSpreadsheetDBException($message);
+            $e->sqlErrors = $sqlErrors;
             throw $e;
         }
 
@@ -95,7 +119,7 @@ class SQLSrv implements DB
         for($i=1; $i<count($data); $i++) {
             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
             if(!sqlsrv_execute($stmt)) {
-                $e = new PHPSpreadsheetDBException();
+                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
                 $e->sqlErrors = sqlsrv_errors();
                 throw $e;
             }

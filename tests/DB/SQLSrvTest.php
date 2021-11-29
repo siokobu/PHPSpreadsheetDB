@@ -4,6 +4,7 @@ namespace PHPSpreadsheetDBTest\DB;
 
 use PHPSpreadsheetDB\DB\DB;
 use PHPSpreadsheetDB\DB\SQLSrv;
+use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 use PHPSpreadsheetDBTest\TestCase;
 
 class SQLSrvTest extends TestCase
@@ -32,10 +33,7 @@ class SQLSrvTest extends TestCase
 
     public function testGetTableDatas()
     {
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
-
-        $conn = sqlsrv_connect($serverName, $connectionInfo);
+        $conn = sqlsrv_connect(self::DBHOST, self::CONNINFO);
 
         $stmt = sqlsrv_query($conn, self::DROP_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
@@ -43,7 +41,7 @@ class SQLSrvTest extends TestCase
         $stmt = sqlsrv_query($conn, self::CREATE_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $sql = "INSERT INTO TESTTB02 VALUES(?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO TESTTB VALUES(?, ?, ?, ?, ?, ?)";
         $stmt = sqlsrv_prepare($conn, $sql, array(1, 1, 3.14, 'abcde', '日本語文字列', '2021/01/01'));
         if(sqlsrv_execute($stmt) === false) { die( print_r( sqlsrv_errors(), true));   }
         $stmt = sqlsrv_prepare($conn, $sql, array(2, 2, 0.01, 'cdefg', 'ひらがな文字列', '2021/12/31'));
@@ -135,5 +133,49 @@ class SQLSrvTest extends TestCase
         $this->assertEquals(str_pad($data[4][3],10),$row['char_col']);
         $this->assertEquals($data[4][4],$row['str_col']);
         $this->assertEquals($data[4][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
+    }
+
+    /**@test コネクション確立でExceptionを発生させるテスト */
+    public function testNoHost()
+    {
+        $this->expectException(PHPSpreadsheetDBException::class);
+        $this->expectExceptionMessage("Invalid Host");
+
+        $serverName = "NOHOST";
+        $connectionInfo = self::CONNINFO;
+        $db = new SQLSrv($serverName, $connectionInfo);
+    }
+
+    /**@test 認証情報が異なる場合のテスト */
+    public function testNoUser()
+    {
+        $this->expectException(PHPSpreadsheetDBException::class);
+        $this->expectExceptionMessage("Invalid User, Password");
+
+        $serverName = self::DBHOST;
+        $connectionInfo = array("Database" => self::DATABASE, "UID" => "NOUSER", "PWD" => self::DBPASS, "CharacterSet" => self::DBCHAR);
+        $db = new SQLSrv($serverName, $connectionInfo);
+    }
+
+    /**@test パスワードが異なる場合のテスト */
+    public function testInvalidPassword()
+    {
+        $this->expectException(PHPSpreadsheetDBException::class);
+        $this->expectExceptionMessage("Invalid Host");
+
+        $serverName = self::DBHOST;
+        $connectionInfo = array("Database" => self::DATABASE, "UID" => self::DBUSER, "PWD" => "invalidPassword", "CharacterSet" => self::DBCHAR);
+        $db = new SQLSrv($serverName, $connectionInfo);
+    }
+
+    /**@test パスワードが異なる場合のテスト */
+    public function testNoTable()
+    {
+        $tableName = "NOTABLE";
+        $this->expectException(PHPSpreadsheetDBException::class);
+        $this->expectExceptionMessage("Invalid TableName. TableName:".$tableName);
+
+        $db = new SQLSrv(self::DBHOST, self::CONNINFO);
+        $db->insertData($tableName, []);
     }
 }
