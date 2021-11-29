@@ -207,9 +207,9 @@ class XlsxTest extends TestCase
         $this->assertEquals('col1', $datas[0][0]);
         $this->assertEquals('col2', $datas[0][1]);
         $this->assertEquals('string', $datas[1][0]);
-        $this->assertEquals(null, $datas[1][1]);
+        $this->assertNull($datas[1][1]);
         $this->assertEquals('2021/10/10 23:59:59', $datas[2][0]);
-        $this->assertEquals('', $datas[2][1]);
+        $this->assertEquals('',$datas[2][1]);
     }
 
 }

@@ -40,9 +40,9 @@ class PHPSpreadsheetDB {
         $tables = $this->spreadsheet->getTableNames();
 
         foreach($tables as $table) {
-            $datas = $this->spreadsheet->getData($table);
+            $data = $this->spreadsheet->getData($table);
 
-            $this->db->insertData($table, $datas);
+            $this->db->insertData($table, $data);
         }
     }
 

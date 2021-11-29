@@ -12,7 +12,9 @@ class TestCase extends \PHPUnit\Framework\TestCase
 
     const DBPASS = "siokobu8400";
 
-    const CONNINFO = array("Database" => self::DATABASE, "UID" => self::DBUSER, "PWD" => self::DBPASS);
+    const DBCHAR = "UTF-8";
+
+    const CONNINFO = array("Database" => self::DATABASE, "UID" => self::DBUSER, "PWD" => self::DBPASS, "CharacterSet" => self::DBCHAR);
 
     const DROP_TESTTB01 = "DROP TABLE IF EXISTS TESTTB01";
 
