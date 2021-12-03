@@ -51,8 +51,9 @@ class SQLSrv implements DB
         $return = array();
 
         if(!$stmt = sqlsrv_prepare($this->conn, "SELECT TOP(1) * FROM " . $tableName)) {
-            $e = new PHPSpreadsheetDBException();
-            $e->sqlErrors = sqlsrv_errors();
+            $sqlErrors = sqlsrv_errors();
+            $e = new PHPSpreadsheetDBException($sqlErrors[0]);
+            $e->sqlErrors = $sqlErrors;
             throw $e;
         }
 
@@ -74,8 +75,9 @@ class SQLSrv implements DB
         $result = array();
         $sql = "SELECT * FROM " . $tableName;
         if(!$stmt = sqlsrv_query($this->conn, $sql)) {
-            $e = new PHPSpreadsheetDBException();
-            $e->sqlErrors = sqlsrv_errors();
+            $sqlErrors = sqlsrv_errors();
+            $e = new PHPSpreadsheetDBException($sqlErrors[0]);
+            $e->sqlErrors = $sqlErrors;
             throw $e;
         }
         while($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
@@ -100,7 +102,7 @@ class SQLSrv implements DB
             } else {
                 $message = "Error while Deleting Data. tablename:".$tableName;
             }
-            $e = new PHPSpreadsheetDBException($message);
+            $e = new PHPSpreadsheetDBException($message." ".$sqlErrors[0]);
             $e->sqlErrors = $sqlErrors;
             throw $e;
         }
@@ -119,8 +121,9 @@ class SQLSrv implements DB
         for($i=1; $i<count($data); $i++) {
             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
             if(!sqlsrv_execute($stmt)) {
-                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
-                $e->sqlErrors = sqlsrv_errors();
+                $sqlErrors = sqlsrv_errors();
+                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i"." ".$sqlErrors[0]);
+                $e->sqlErrors = $sqlErrors;
                 throw $e;
             }
         }

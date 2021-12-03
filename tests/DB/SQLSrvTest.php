@@ -11,9 +11,9 @@ class SQLSrvTest extends TestCase
 {
     public function testGetColumns()
     {
-        $this->refreshDB();
+        $this->refreshDB_SQLSRV();
 
-        $SQLSrv = new SQLSrv(self::DBHOST, self::CONNINFO);
+        $SQLSrv = new SQLSrv(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
         $columns = $SQLSrv->getColumns("TESTTB01");
 
         $this->assertEquals("primary_key",  $columns[0]['Name']);
@@ -33,15 +33,15 @@ class SQLSrvTest extends TestCase
 
     public function testGetTableDatas()
     {
-        $conn = sqlsrv_connect(self::DBHOST, self::CONNINFO);
+        $conn = sqlsrv_connect(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB02);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_DROP_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB02);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_CREATE_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $sql = "INSERT INTO TESTTB VALUES(?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO TESTTB01 VALUES(?, ?, ?, ?, ?, ?)";
         $stmt = sqlsrv_prepare($conn, $sql, array(1, 1, 3.14, 'abcde', '日本語文字列', '2021/01/01'));
         if(sqlsrv_execute($stmt) === false) { die( print_r( sqlsrv_errors(), true));   }
         $stmt = sqlsrv_prepare($conn, $sql, array(2, 2, 0.01, 'cdefg', 'ひらがな文字列', '2021/12/31'));
@@ -49,7 +49,7 @@ class SQLSrvTest extends TestCase
 
         sqlsrv_close($conn);
 
-        $SQLSrv = new SQLSrv($serverName, $connectionInfo);
+        $SQLSrv = new SQLSrv(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
         $datas = $SQLSrv->getTableData("TESTTB02");
 
         $this->assertEquals(1, $datas[0]['primary_key']);
@@ -70,69 +70,45 @@ class SQLSrvTest extends TestCase
     /** @test */
     public function testInsertData1()
     {
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
+        $this->refreshDB_SQLSRV();
 
-        $conn = sqlsrv_connect($serverName, $connectionInfo);
+        $sqlSrv = new SQLSrv(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
+        $sqlSrv->insertData(self::TESTTB01, self::TESTDATADB1);
+        $sqlSrv->insertData(self::TESTTB02, self::TESTDATADB2);
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB01);
-        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
+        $conn = sqlsrv_connect(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB01);
-        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
-
-        sqlsrv_close($conn);
-
-        $table = 'TESTTB01';
-
-        $data = [
-            ['primary_key', 'int_col', 'float_col', 'char_col', 'str_col', 'datetime_col'],
-            ['1', '1', '3.14', 'abced', '日本語文字列',  '2021-01-01 00:00:00'],
-            ['2', null, null, null, null, null],
-            ['3', '', '', '', '', ''],
-            ['4', '2', '0.01', 'fghij', 'ひらがな文字列', '2050-12-31 00:00:00']
-        ];
-
-        $sqlSrv = new SQLSrv($serverName, $connectionInfo);
-        $sqlSrv->insertData($table, $data);
-
-        $conn = sqlsrv_connect($serverName, $connectionInfo);
-
-        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [1]);
+        $result = sqlsrv_query($conn, "SELECT * FROM ".self::TESTTB01.";");
         $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $this->assertEquals($data[1][0],$row['primary_key']);
-        $this->assertEquals($data[1][1],$row['int_col']);
-        $this->assertEquals($data[1][2],$row['float_col']);
-        $this->assertEquals(str_pad($data[1][3],10),$row['char_col']);
-        $this->assertEquals($data[1][4],$row['str_col']);
-        $this->assertEquals($data[1][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
-
-        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [2]);
+        $this->assertEquals(self::TESTDATARESULT1[1][0],$row['primary_key']);
+        $this->assertEquals(self::TESTDATARESULT1[1][1],$row['int_col']);
+        $this->assertEquals(self::TESTDATARESULT1[1][2],$row['float_col']);
+        $this->assertEquals(self::TESTDATARESULT1[1][3],$row['char_col']);
+        $this->assertEquals(self::TESTDATARESULT1[1][4],$row['str_col']);
+        $this->assertEquals(self::TESTDATARESULT1[1][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
         $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $this->assertEquals($data[2][0],$row['primary_key']);
-        $this->assertEquals(null,$row['int_col']);
-        $this->assertEquals(null,$row['float_col']);
-        $this->assertEquals(null,$row['char_col']);
-        $this->assertEquals(null,$row['str_col']);
-        $this->assertEquals(null,$row['datetime_col']);
+        $this->assertEquals(self::TESTDATARESULT1[2][0],$row['primary_key']);
+        $this->assertEquals(self::TESTDATARESULT1[2][1],$row['int_col']);
+        $this->assertEquals(self::TESTDATARESULT1[2][2],$row['float_col']);
+        $this->assertEquals(self::TESTDATARESULT1[2][3],$row['char_col']);
+        $this->assertEquals(self::TESTDATARESULT1[2][4],$row['str_col']);
+        $this->assertEquals(self::TESTDATARESULT1[2][5],$row['datetime_col']);
 
-        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [3]);
+        $result = sqlsrv_query($conn, "SELECT * FROM ".self::TESTTB02.";");
         $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $this->assertEquals($data[3][0],$row['primary_key']);
-        $this->assertEquals(0,$row['int_col']);
-        $this->assertEquals(0,$row['float_col']);
-        $this->assertEquals('          ',$row['char_col']);
-        $this->assertEquals('',$row['str_col']);
-        $this->assertEquals('1900-01-01 00:00:00',date_format($row['datetime_col'], 'Y-m-d H:i:s'));
-
-        $result = sqlsrv_query($conn, "SELECT * FROM ".$table." WHERE primary_key = ?;", [4]);
+        $this->assertEquals(self::TESTDATARESULT2[1][0],$row['primary_key']);
+        $this->assertEquals(self::TESTDATARESULT2[1][1],$row['int_col']);
+        $this->assertEquals(self::TESTDATARESULT2[1][2],$row['float_col']);
+        $this->assertEquals(self::TESTDATARESULT2[1][3],$row['char_col']);
+        $this->assertEquals(self::TESTDATARESULT2[1][4],$row['str_col']);
+        $this->assertEquals(self::TESTDATARESULT2[1][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
         $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
-        $this->assertEquals($data[4][0],$row['primary_key']);
-        $this->assertEquals($data[4][1],$row['int_col']);
-        $this->assertEquals($data[4][2],$row['float_col']);
-        $this->assertEquals(str_pad($data[4][3],10),$row['char_col']);
-        $this->assertEquals($data[4][4],$row['str_col']);
-        $this->assertEquals($data[4][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
+        $this->assertEquals(self::TESTDATARESULT2[2][0],$row['primary_key']);
+        $this->assertEquals(self::TESTDATARESULT2[2][1],$row['int_col']);
+        $this->assertEquals(self::TESTDATARESULT2[2][2],$row['float_col']);
+        $this->assertEquals(self::TESTDATARESULT2[2][3],$row['char_col']);
+        $this->assertEquals(self::TESTDATARESULT2[2][4],$row['str_col']);
+        $this->assertEquals(self::TESTDATARESULT2[2][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
     }
 
     /**@test コネクション確立でExceptionを発生させるテスト */
@@ -142,7 +118,7 @@ class SQLSrvTest extends TestCase
         $this->expectExceptionMessage("Invalid Host");
 
         $serverName = "NOHOST";
-        $connectionInfo = self::CONNINFO;
+        $connectionInfo = self::SQLSRV_CONNINFO;
         $db = new SQLSrv($serverName, $connectionInfo);
     }
 
@@ -152,8 +128,8 @@ class SQLSrvTest extends TestCase
         $this->expectException(PHPSpreadsheetDBException::class);
         $this->expectExceptionMessage("Invalid User, Password");
 
-        $serverName = self::DBHOST;
-        $connectionInfo = array("Database" => self::DATABASE, "UID" => "NOUSER", "PWD" => self::DBPASS, "CharacterSet" => self::DBCHAR);
+        $serverName = self::SQLSRV_DBHOST;
+        $connectionInfo = array("Database" => self::SQLSRV_DATABASE, "UID" => "NOUSER", "PWD" => self::SQLSRV_DBPASS, "CharacterSet" => self::SQLSRV_DBCHAR);
         $db = new SQLSrv($serverName, $connectionInfo);
     }
 
@@ -163,19 +139,19 @@ class SQLSrvTest extends TestCase
         $this->expectException(PHPSpreadsheetDBException::class);
         $this->expectExceptionMessage("Invalid Host");
 
-        $serverName = self::DBHOST;
-        $connectionInfo = array("Database" => self::DATABASE, "UID" => self::DBUSER, "PWD" => "invalidPassword", "CharacterSet" => self::DBCHAR);
+        $serverName = self::SQLSRV_DBHOST;
+        $connectionInfo = array("Database" => self::SQLSRV_DATABASE, "UID" => self::SQLSRV_DBUSER, "PWD" => "invalidPassword", "CharacterSet" => self::SQLSRV_DBCHAR);
         $db = new SQLSrv($serverName, $connectionInfo);
     }
 
-    /**@test パスワードが異なる場合のテスト */
+    /**@test 対象のテーブルが存在しない場合のテスト */
     public function testNoTable()
     {
         $tableName = "NOTABLE";
         $this->expectException(PHPSpreadsheetDBException::class);
         $this->expectExceptionMessage("Invalid TableName. TableName:".$tableName);
 
-        $db = new SQLSrv(self::DBHOST, self::CONNINFO);
+        $db = new SQLSrv(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
         $db->insertData($tableName, []);
     }
 }

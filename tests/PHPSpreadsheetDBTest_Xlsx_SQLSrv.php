@@ -2,6 +2,7 @@
 
 namespace PHPSpreadsheetDBTest;
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PHPSpreadsheetDB\DB\SQLSrv;
 use PHPSpreadsheetDB\PHPSpreadsheetDB;
@@ -108,16 +109,16 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
 
         $conn = sqlsrv_connect($serverName, $connectionInfo);
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB01);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_DROP_TESTTB01);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB01);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_CREATE_TESTTB01);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB02);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_DROP_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB02);
+        $stmt = sqlsrv_query($conn, self::SQLSRV_CREATE_TESTTB02);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
         sqlsrv_close($conn);
@@ -182,17 +183,48 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
 
     }
 
-    public function testExportToSpreadsheet()
+    public function testExportToSpreadsheet1()
     {
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
-        $db = new SQLSrv($serverName, $connectionInfo);
+        // Excelのパス
+        $path = __DIR__."/files/PHPSpreadsheetDBTest_Xlsx_SQLSrv_testExportToSpreadsheet1.xlsx";
 
-        $spreadsheet = new Xlsx("TestXlsx.xlsx");
+        // 事前データの準備
+        $this->refreshDB_SQLSRV();
+        $this->insertDB_SQLSRV();
 
-        $psdb = new PHPSpreadsheetDB($db, $spreadsheet);
+        // exportToSpreadsheet の実行
+        $db = new SQLSrv(self::SQLSRV_DBHOST, self::SQLSRV_CONNINFO);
+        $spreadsheet = new Xlsx($path);
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($db, $spreadsheet);
+        $phpSpreadsheetDB->exportToSpreadsheet(["TESTTB01", "TESTTB02"]);
 
-        $psdb->exportToSpreadsheet(["testtb01", "TESTTB02"]);
+        // データの検証
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getSheetByName(self::TESTTB01);
+        $this->assertEquals("primary_key", $sheet->getCell('A1')->getValue());
+        $this->assertEquals("int_col", $sheet->getCell('B1')->getValue());
+        $this->assertEquals("float_col", $sheet->getCell('C1')->getValue());
+        $this->assertEquals("char_col", $sheet->getCell('D1')->getValue());
+        $this->assertEquals("str_col", $sheet->getCell('E1')->getValue());
+        $this->assertEquals("datetime_col", $sheet->getCell('F1')->getValue());
+        $this->assertEquals("1", $sheet->getCell('A2')->getValue());
+        $this->assertEquals("1", $sheet->getCell('B2')->getValue());
+        $this->assertEquals("3.14", $sheet->getCell('C2')->getValue());
+        $this->assertEquals("abced     ", $sheet->getCell('D2')->getValue());
+        $this->assertEquals("日本語文字列", $sheet->getCell('E2')->getValue());
+        $this->assertEquals("2021-01-01 00:00:00", $sheet->getCell('F2')->getValue());
+        $this->assertEquals("2", $sheet->getCell('A3')->getValue());
+        $this->assertEquals("<null>", $sheet->getCell('B3')->getValue());
+        $this->assertEquals("<null>", $sheet->getCell('C3')->getValue());
+        $this->assertEquals("<null>", $sheet->getCell('D3')->getValue());
+        $this->assertEquals("<null>", $sheet->getCell('E3')->getValue());
+        $this->assertEquals("<null>", $sheet->getCell('F3')->getValue());
+
+//                const TESTDATARESULT1 = [
+//                    ['primary_key', 'int_col', 'float_col', 'char_col', 'str_col', 'datetime_col'],
+//                    [1, 1, 3.14, 'abced     ', '日本語文字列',  '2021-01-01 00:00:00'],
+//                    [2, null, null, null, null, null]
+//                ];
 
     }
 }

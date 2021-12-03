@@ -7,7 +7,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use PHPSpreadsheetDB\Spreadsheet\Xlsx;
-use PHPUnit\Framework\TestCase;
+use PHPSpreadsheetDBTest\TestCase;
 
 class XlsxTest extends TestCase
 {
@@ -67,6 +67,35 @@ class XlsxTest extends TestCase
         if(file_exists($path)) unlink($path);
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
+        $sheet->setCellValue('A1', 'col1');
+        $sheet->setCellValue('B1', 'col2');
+        $spreadsheet->addSheet($sheet);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+
+        $datas = array(array('col1' => 'hoge', 'col2' => 'fuga'), array('col1' => 'foo', 'col2' => 'var'));
+
+        $xlsx = new Xlsx($path);
+        $xlsx->setTableDatas($table, $datas);
+
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getSheetByName($table);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), 'col1');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), 'hoge');
+        $this->assertEquals($sheet->getCell('A3')->getValue(), 'foo');
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'col2');
+        $this->assertEquals($sheet->getCell('B2')->getValue(), 'fuga');
+        $this->assertEquals($sheet->getCell('B3')->getValue(), 'var');
+
+    }
+
+    public function testSetTableDatas2()
+    {
+        $path = __DIR__."/files/XlsxTest_testSetTableDatas2.xlsx";
+
+        if(file_exists($path)) unlink($path);
+        $spreadsheet = new Spreadsheet();
+        $sheet = new Worksheet($spreadsheet, self::TESTTB01);
         $sheet->setCellValue('A1', 'col1');
         $sheet->setCellValue('B1', 'col2');
         $spreadsheet->addSheet($sheet);
