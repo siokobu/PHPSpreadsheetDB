@@ -9,6 +9,19 @@ use PHPSpreadsheetDBTest\TestCase;
 
 class SQLSrvTest extends TestCase
 {
+    public function testConstruct()
+    {
+            $this->expectException(PHPSpreadsheetDBException::class);
+            $this->expectExceptionMessage('Invalid User, Password');
+
+            $connectionInfo = array(
+                "Database" => self::SQLSRV_DATABASE,
+                "UID" => self::SQLSRV_DBUSER,
+                "PWD" => 'InvalidPass',
+                "CharacterSet" => self::SQLSRV_DBCHAR);
+            $SQLSrv = new SQLSrv(self::SQLSRV_DBHOST, $connectionInfo);
+    }
+
     public function testGetColumns()
     {
         $this->refreshDB_SQLSRV();

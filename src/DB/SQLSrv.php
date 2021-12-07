@@ -28,11 +28,11 @@ class SQLSrv implements DB
             $sqlErrors = sqlsrv_errors();
             $message = "";
             if($sqlErrors[0]['SQLSTATE'] == '28000') {
-                $message = "Invalid User, Password";
+                $message = "Invalid User, Password ".$sqlErrors[0]['message'];
             } else if ($sqlErrors[0]['SQLSTATE'] == '08001') {
-                $message = "Invalid Host";
+                $message = "Invalid Host ".$sqlErrors[0]['message'];
             } else {
-                $message = "Connection Error";
+                $message = "Connection Error ".$sqlErrors[0]['message'];
             }
             $e = new PHPSpreadsheetDBException($message);
             $e->sqlErrors = $sqlErrors;
@@ -52,7 +52,7 @@ class SQLSrv implements DB
 
         if(!$stmt = sqlsrv_prepare($this->conn, "SELECT TOP(1) * FROM " . $tableName)) {
             $sqlErrors = sqlsrv_errors();
-            $e = new PHPSpreadsheetDBException($sqlErrors[0]);
+            $e = new PHPSpreadsheetDBException($sqlErrors[0]['message']);
             $e->sqlErrors = $sqlErrors;
             throw $e;
         }
@@ -76,7 +76,7 @@ class SQLSrv implements DB
         $sql = "SELECT * FROM " . $tableName;
         if(!$stmt = sqlsrv_query($this->conn, $sql)) {
             $sqlErrors = sqlsrv_errors();
-            $e = new PHPSpreadsheetDBException($sqlErrors[0]);
+            $e = new PHPSpreadsheetDBException($sqlErrors[0]['message']);
             $e->sqlErrors = $sqlErrors;
             throw $e;
         }
@@ -102,7 +102,7 @@ class SQLSrv implements DB
             } else {
                 $message = "Error while Deleting Data. tablename:".$tableName;
             }
-            $e = new PHPSpreadsheetDBException($message." ".$sqlErrors[0]);
+            $e = new PHPSpreadsheetDBException($message." ".$sqlErrors[0]['message']);
             $e->sqlErrors = $sqlErrors;
             throw $e;
         }
@@ -122,7 +122,7 @@ class SQLSrv implements DB
             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
             if(!sqlsrv_execute($stmt)) {
                 $sqlErrors = sqlsrv_errors();
-                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i"." ".$sqlErrors[0]);
+                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i"." ".$sqlErrors[0]['message']);
                 $e->sqlErrors = $sqlErrors;
                 throw $e;
             }
