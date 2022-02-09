@@ -134,6 +134,17 @@ class TestCase extends \PHPUnit\Framework\TestCase
         }
     }
 
-
+    protected function getEnvironment()
+    {
+        $data = array();
+        $f = fopen('environment', "r");
+        while($line = fgets($f)) {
+            if(strpos($line, "#") > 0) {
+                $line = substr($line, strpos($line));
+            }
+            $key = trim(explode("=", $line)[0]);
+            $value = trim(explode("=",$line)[1]);
+        }
+    }
 
 }

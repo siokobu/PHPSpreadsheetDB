@@ -4,3 +4,4 @@
 /.phpunit.result.cache
 /tests/Spreadsheet/files
 /tests/files
+/tests/DB/environment

@@ -43,5 +43,4 @@ interface DB
      * @throws PHPSpreadsheetDBException DB登録時に発生したException
      */
     public function insertData(string $tableName, array $data);
-
 }
