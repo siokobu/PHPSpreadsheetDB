@@ -3,3 +3,5 @@
 /.vscode
 /.phpunit.result.cache
 /tests/Spreadsheet/files
+/tests/DB/env.php
+/tests/DB/env

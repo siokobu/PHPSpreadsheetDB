@@ -9,6 +9,54 @@ use PHPSpreadsheetDBTest\TestCase;
 
 class SQLSrvTest extends TestCase
 {
+    private $host;
+
+    private $database;
+
+    private $uid;
+
+    private $pwd;
+
+    private $charset;
+
+    private $serverName;
+
+    private $connectionInfo;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $file = file(__DIR__.'/'.'env');
+        foreach($file as $line) {
+            if(str_contains($line, "=")) {
+                switch(explode("=", $line, 2)[0]) {
+                    case "SQLSRV_HOST":
+                        $this->host = trim(explode("=", $line, 2)[1]);
+                        break;
+                    case "SQLSRV_DATABASE":
+                        $this->database = trim(explode("=", $line, 2)[1]);
+                        break;
+                    case "SQLSRV_UID":
+                        $this->uid = trim(explode("=", $line, 2)[1]);
+                        break;
+                    case "SQLSRV_PWD":
+                        $this->pwd = trim(explode("=", $line, 2)[1]);
+                        break;
+                    case "SQLSRV_CHARSET":
+                        $this->charset = trim(explode("=", $line, 2)[1]);
+                        break;
+                    default:
+                }
+            }
+        }
+        $this->serverName = $this->host;
+        $this->connectionInfo = array(
+            "Database" => $this->database,
+            "UID" => $this->uid,
+            "PWD" => $this->pwd,
+            "CharacterSet" => $this->charset);
+    }
+
     public function testGetColumns()
     {
         $this->refreshDB();
@@ -49,7 +97,7 @@ class SQLSrvTest extends TestCase
 
         sqlsrv_close($conn);
 
-        $SQLSrv = new SQLSrv($serverName, $connectionInfo);
+        $SQLSrv = new SQLSrv($this->serverName, $this->connectionInfo);
         $datas = $SQLSrv->getTableData("TESTTB02");
 
         $this->assertEquals(1, $datas[0]['primary_key']);
@@ -70,10 +118,17 @@ class SQLSrvTest extends TestCase
     /** @test */
     public function testInsertData1()
     {
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
+        $serverName = $this->host;
+        $connectionInfo = array(
+            "Database" => $this->database,
+            "UID" => $this->uid,
+            "PWD" => $this->pwd,
+            "CharacterSet" => $this->charset);
 
         $conn = sqlsrv_connect($serverName, $connectionInfo);
+        if($conn === false) {
+            die(print_r(sqlsrv_errors()));
+        }
 
         $stmt = sqlsrv_query($conn, self::DROP_TESTTB01);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
@@ -135,6 +190,39 @@ class SQLSrvTest extends TestCase
         $this->assertEquals($data[4][5],date_format($row['datetime_col'], 'Y-m-d H:i:s'));
     }
 
+    /** @test */
+    public function testInsertData_IDENTITYカラムを含む場合()
+    {
+        $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
+        if($conn === false) { die(print_r(sqlsrv_errors())); }
+
+        $stmt = sqlsrv_query($conn, self::DROP_TABLE_IDENTITY);
+        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
+
+        $stmt = sqlsrv_query($conn, self::CREATE_TABLE_IDENTITY);
+        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
+
+        sqlsrv_close($conn);
+
+        $data = [['primary_key', 'int_col'],['1', '1'],['2', '2']];
+
+        $sqlSrv = new SQLSrv($this->serverName, $this->connectionInfo);
+        $sqlSrv->insertData(self::TABLE_IDENTITY, $data);
+
+        $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
+
+        $result = sqlsrv_query($conn, "SELECT * FROM ".self::TABLE_IDENTITY." WHERE primary_key = ?;", [1]);
+        $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $this->assertEquals(1,$row['primary_key']);
+        $this->assertEquals($data[1][0],$row['int_col']);
+
+        $result = sqlsrv_query($conn, "SELECT * FROM ".self::TABLE_IDENTITY." WHERE primary_key = ?;", [2]);
+        $row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC);
+        $this->assertEquals(2,$row['primary_key']);
+        $this->assertEquals($data[2][0],$row['int_col']);
+
+    }
+
     /**@test コネクション確立でExceptionを発生させるテスト */
     public function testNoHost()
     {
@@ -178,4 +266,15 @@ class SQLSrvTest extends TestCase
         $db = new SQLSrv(self::DBHOST, self::CONNINFO);
         $db->insertData($tableName, []);
     }
+
+    const TABLE_IDENTITY = "TESTTB_IDENTITY";
+
+    const CREATE_TABLE_IDENTITY =
+        "CREATE TABLE TESTTB_IDENTITY ("
+        ."primary_key int IDENTITY(1,1) NOT NULL PRIMARY KEY,"
+        ."int_col integer"
+        .");";
+
+    const DROP_TABLE_IDENTITY = "DROP TABLE IF EXISTS TESTTB_IDENTITY";
+
 }

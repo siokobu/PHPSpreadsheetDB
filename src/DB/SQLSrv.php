@@ -105,7 +105,8 @@ class SQLSrv implements DB
             throw $e;
         }
 
-        // Prepare Statement.
+        sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
+
         $cols = "";
         $placeHolders = "";
         foreach($data[0] as $col) {
@@ -125,6 +126,7 @@ class SQLSrv implements DB
             }
         }
 
+        sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
     }
 
     /**
