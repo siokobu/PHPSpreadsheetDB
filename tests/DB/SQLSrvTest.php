@@ -52,7 +52,23 @@ class SQLSrvTest extends TestCase
 
     public function testGetColumns()
     {
-        $this->refreshDB();
+        $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
+
+        $stmt = sqlsrv_query($conn, "DROP TABLE IF EXISTS TESTTB01");
+        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
+
+        $sql = "CREATE TABLE TESTTB01 ("
+            ."primary_key integer NOT NULL PRIMARY kEY,"
+            ."int_col integer, "
+            ."float_col float,"
+            ."char_col nchar(10),"
+            ."str_col nvarchar(100),"
+            ."datetime_col datetime2 "
+            .");";
+        $stmt = sqlsrv_query($conn, $sql);
+        if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
+
+        sqlsrv_close($conn);
 
         $SQLSrv = new SQLSrv($this->serverName, $this->connectionInfo);
         $columns = $SQLSrv->getColumns("TESTTB01");
@@ -74,15 +90,25 @@ class SQLSrvTest extends TestCase
 
     public function testGetTableDatas()
     {
+        $table = "TESTTB";
         $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB02);
+        $stmt = sqlsrv_query($conn, "DROP TABLE IF EXISTS ".$table);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB02);
+        $sql = "CREATE TABLE ".$table." ("
+            ."primary_key integer NOT NULL PRIMARY kEY,"
+            ."int_col integer, "
+            ."float_col float,"
+            ."char_col nchar(10),"
+            ."str_col nvarchar(100),"
+            ."datetime_col datetime2 "
+            .");";
+
+        $stmt = sqlsrv_query($conn, $sql);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $sql = "INSERT INTO TESTTB02 VALUES(?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO ".$table." VALUES(?, ?, ?, ?, ?, ?)";
         $stmt = sqlsrv_prepare($conn, $sql, array(1, 1, 3.14, 'abcde', '日本語文字列', '2021/01/01'));
         if(sqlsrv_execute($stmt) === false) { die( print_r( sqlsrv_errors(), true));   }
         $stmt = sqlsrv_prepare($conn, $sql, array(2, 2, 0.01, 'cdefg', 'ひらがな文字列', '2021/12/31'));
@@ -91,7 +117,7 @@ class SQLSrvTest extends TestCase
         sqlsrv_close($conn);
 
         $SQLSrv = new SQLSrv($this->serverName, $this->connectionInfo);
-        $datas = $SQLSrv->getTableData("TESTTB02");
+        $datas = $SQLSrv->getTableData($table);
 
         $this->assertEquals(1, $datas[0]['primary_key']);
         $this->assertEquals(1, $datas[0]['int_col']);
@@ -118,7 +144,16 @@ class SQLSrvTest extends TestCase
         $stmt = sqlsrv_query($conn, "DROP TABLE IF EXISTS ".$table);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB01);
+        $sql = "CREATE TABLE TESTTB01 ("
+            ."primary_key integer NOT NULL PRIMARY kEY,"
+            ."int_col integer, "
+            ."float_col float,"
+            ."char_col nchar(10),"
+            ."str_col nvarchar(100),"
+            ."datetime_col datetime2 "
+            .");";
+
+        $stmt = sqlsrv_query($conn, $sql);
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
         sqlsrv_close($conn);
