@@ -94,7 +94,6 @@ class SQLSrv implements DB
         // Delete All Data.
         if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
             $sqlErrors = sqlsrv_errors();
-            $message = "";
             if($sqlErrors[0]['SQLSTATE'] == '42S02') {
                 $message = "Invalid TableName. TableName:".$tableName;
             } else {
@@ -132,7 +131,7 @@ class SQLSrv implements DB
     /**
      * @throws PHPSpreadsheetDBException
      */
-    private function getDBColumnType($type)
+    private function getDBColumnType($type): int
     {
         $return = null;
         if($type == -5  // bigint

@@ -4,18 +4,6 @@ namespace PHPSpreadsheetDBTest;
 
 class TestCase extends \PHPUnit\Framework\TestCase
 {
-    const DBHOST = "SERV";
-
-    const DATABASE = "TESTDB";
-
-    const DBUSER = "sa";
-
-    const DBPASS = "siokobu8400";
-
-    const DBCHAR = "UTF-8";
-
-    const CONNINFO = array("Database" => self::DATABASE, "UID" => self::DBUSER, "PWD" => self::DBPASS, "CharacterSet" => self::DBCHAR);
-
     const DROP_TESTTB01 = "DROP TABLE IF EXISTS TESTTB01";
 
     const DROP_TESTTB02 = "DROP TABLE IF EXISTS TESTTB02";
