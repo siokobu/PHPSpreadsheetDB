@@ -7,13 +7,13 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use PHPSpreadsheetDB\Spreadsheet\Xlsx;
-use PHPUnit\Framework\TestCase;
+use PHPSpreadsheetDBTest\TestCase;
 
 class XlsxTest extends TestCase
 {
     public function testDeleteAllSheets()
     {
-        $path = __DIR__."/docs/XlsxTest_testDeleteAllSheets.xlsx";
+        $path = self::TEMPDIR."XlsxTest_testDeleteAllSheets.xlsx";
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, "hoge");
         $spreadsheet->addSheet($sheet, 0);
@@ -34,7 +34,7 @@ class XlsxTest extends TestCase
     {
         $table = "hogeTable";
         $columns = array( ['Name' => 'hoge', 'Type' => 0], ['Name' => 'fuga', 'Type' => 1]);
-        $path = __DIR__."/docs/XlsxTest_testCreateSheet.xlsx";
+        $path = self::TEMPDIR."XlsxTest_testCreateSheet.xlsx";
 
         if(file_exists($path)) unlink($path);
         $spreadsheet = new Spreadsheet();
@@ -61,7 +61,7 @@ class XlsxTest extends TestCase
      */
     public function testSetTableDatas()
     {
-        $path = __DIR__."/docs/XlsxTest_testSettableDatas1.xlsx";
+        $path = self::TEMPDIR."XlsxTest_testSettableDatas1.xlsx";
         $table = "testtb";
 
         if(file_exists($path)) unlink($path);

@@ -5,8 +5,8 @@ from DB to Spreadsheet and a function to import data from Spreadsheet to DB
 
 ## Supported Databases
 
-Only Microsoft SQL Server is Supported.
-And only import to Microsoft SQL Server from Microsoft Excel.
+Microsoft SQL Server And SQLite is Supported For 
+importing to Microsoft SQL Server from Microsoft Excel.
 
 ## Supported Spreadsheet
 

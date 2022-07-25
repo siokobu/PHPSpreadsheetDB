@@ -11,10 +11,36 @@ use PHPSpreadsheetDB\Spreadsheet\Xlsx;
 
 class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
 {
+    private string $database;
+
+    private string $uid;
+
+    private string $pwd;
+
+    private string $charset;
+
+    private array $connectionInfo;
+
+    private string $serverName;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->database = $this->getEnv("SQLSRV_DATABASE");
+        $this->uid = $this->getEnv("SQLSRV_UID");
+        $this->pwd = $this->getEnv("SQLSRV_PWD");
+        $this->charset = $this->getEnv("SQLSRV_CHARSET");
+        $this->connectionInfo['Database'] = $this->database;
+        $this->connectionInfo['UID'] = $this->uid;
+        $this->connectionInfo['PWD'] = $this->pwd;
+        $this->connectionInfo['CharacterSet'] = $this->charset;
+        $this->serverName = $this->getEnv("SQLSRV_HOST");
+    }
 
     /** @test */
     public function testImportFromSpreadsheet()
     {
+        $tableName = ['TESTTB01', 'TESTTB02'];
         $testData1 = [
             [
                 'primary_key' => '1',
@@ -53,12 +79,12 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
             ]
         ];
 
-        $path = __DIR__."/Xlsx_SQLSrv-ImportFromSpreadsheet.xlsx";
+        $path = __DIR__.DIRECTORY_SEPARATOR."temp".DIRECTORY_SEPARATOR."/Xlsx_SQLSrv-ImportFromSpreadsheet.xlsx";
 
         if(file_exists($path)) unlink($path);
         $sourceSS = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
-        $sheet = new Worksheet($sourceSS, "TESTTB01");
+        $sheet = new Worksheet($sourceSS, $tableName[0]);
         $sheet->setCellValue('A1', 'primary_key');
         $sheet->setCellValue('B1', 'int_col');
         $sheet->setCellValue('C1', 'float_col');
@@ -79,7 +105,7 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
         $sheet->setCellValue('F3', $testData1[1]['datetime_col']);
         $sourceSS->addSheet($sheet);
 
-        $sheet = new Worksheet($sourceSS, "TESTTB02");
+        $sheet = new Worksheet($sourceSS, $tableName[1]);
         $sheet->setCellValue('A1', 'primary_key');
         $sheet->setCellValue('B1', 'int_col');
         $sheet->setCellValue('C1', 'float_col');
@@ -103,39 +129,32 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
         $sourceSS->removeSheetByIndex($sourceSS->getIndex($sourceSS->getSheetByName('Worksheet')));
         (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($sourceSS))->save($path);
 
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
+        $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
 
-        $conn = sqlsrv_connect($serverName, $connectionInfo);
-
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB01);
+        $stmt = sqlsrv_query($conn, $this->getDropStmt($tableName[0]));
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB01);
+        $stmt = sqlsrv_query($conn, $this->getCreateStmt($tableName[0]));
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::DROP_TESTTB02);
+        $stmt = sqlsrv_query($conn, $this->getDropStmt($tableName[1]));
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
-        $stmt = sqlsrv_query($conn, self::CREATE_TESTTB02);
+        $stmt = sqlsrv_query($conn, $this->getCreateStmt($tableName[1]));
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
         sqlsrv_close($conn);
 
         /** テスト実行を実施 */
-        $SQLSrv = new SQLSrv($serverName, $connectionInfo);
+        $SQLSrv = new SQLSrv($this->serverName, $this->connectionInfo);
         $xlsx = new Xlsx($path);
 
         $phpSpreadsheetDB = new PHPSpreadsheetDB($SQLSrv, $xlsx);
         $phpSpreadsheetDB->importFromSpreadsheet();
 
+        $conn = sqlsrv_connect($this->serverName, $this->connectionInfo);
 
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
-
-        $conn = sqlsrv_connect($serverName, $connectionInfo);
-
-        $stmt = sqlsrv_query($conn, "SELECT * FROM TESTTB01;");
+        $stmt = sqlsrv_query($conn, "SELECT * FROM ".$tableName[0].";");
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
         $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
@@ -154,7 +173,7 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
         $this->assertNull($row['str_col']);
         $this->assertNull($row['datetime_col']);
 
-        $stmt = sqlsrv_query($conn, "SELECT * FROM TESTTB02;");
+        $stmt = sqlsrv_query($conn, "SELECT * FROM ".$tableName[1].";");
         if($stmt == false) { die( print_r( sqlsrv_errors(), true));   }
 
         $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
@@ -177,22 +196,45 @@ class PHPSpreadsheetDBTest_Xlsx_SQLSrv extends TestCase
 
     }
 
-    public function test__construct()
-    {
-
-    }
-
     public function testExportToSpreadsheet()
     {
-        $serverName = "SERV";
-        $connectionInfo = array("Database" => "TESTDB", "UID" => "sa", "PWD" => "siokobu8400", "CharacterSet" => "UTF-8");
-        $db = new SQLSrv($serverName, $connectionInfo);
+        $db = new SQLSrv($this->serverName, $this->connectionInfo);
 
-        $spreadsheet = new Xlsx("TestXlsx.xlsx");
+        $path = __DIR__.DIRECTORY_SEPARATOR."temp".DIRECTORY_SEPARATOR."/Xlsx_SQLSrv-ExportToSpreadsheet.xlsx";
+
+        $spreadsheet = new Xlsx($path);
 
         $psdb = new PHPSpreadsheetDB($db, $spreadsheet);
 
         $psdb->exportToSpreadsheet(["testtb01", "TESTTB02"]);
 
+        $this->assertTrue(true);
+    }
+
+    /**
+     * テーブル削除用SQLを生成する
+     * @param string $tableName テーブル名
+     * @return string テーブル削除用SQL
+     */
+    private function getDropStmt(string $tableName): string
+    {
+        return "DROP TABLE IF EXISTS ".$tableName.";";
+    }
+
+    /**
+     * テーブル作成用SQLを生成する．本クラスではカラムの詳細まで調べない（DBドライバのテストで実施）ためテーブルは１種類のみ
+     * @param string $tableName テーブル名
+     * @return string テーブル作成用SQL
+     */
+    private function getCreateStmt(string $tableName): string
+    {
+        return "CREATE TABLE " . $tableName . " ("
+            . "primary_key integer NOT NULL PRIMARY kEY,"
+            . "int_col integer, "
+            . "float_col float,"
+            . "char_col nchar(10),"
+            . "str_col nvarchar(100),"
+            . "datetime_col datetime2 "
+            . ");";
     }
 }
