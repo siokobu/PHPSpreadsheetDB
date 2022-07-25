@@ -2,12 +2,10 @@
 
 namespace PHPSpreadsheetDB\DB;
 
-use PDO;
 use phpDocumentor\Reflection\Types\Resource_;
-use PHPSpreadsheetDB\DB\DB;
 use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 
-class SQLSrv implements DB
+class SQLSrv extends DB
 {
     /**
      * @var Resource_ DBへのコネクション情報
@@ -86,12 +84,8 @@ class SQLSrv implements DB
 
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function insertData($tableName, $data)
+    public function deleteData(string $tableName): void
     {
-        // Delete All Data.
         if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
             $sqlErrors = sqlsrv_errors();
             if($sqlErrors[0]['SQLSTATE'] == '42S02') {
@@ -103,18 +97,18 @@ class SQLSrv implements DB
             $e->sqlErrors = $sqlErrors;
             throw $e;
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function insertData($tableName, $data)
+    {
+        if(count($data) === 0) return;
 
         sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
 
-        $cols = "";
-        $placeHolders = "";
-        foreach($data[0] as $col) {
-            $cols .= $col.",";
-            $placeHolders .= "?,";
-        }
-        $cols = substr($cols, 0, -1);
-        $placeHolders = substr($placeHolders, 0, -1);
-        $sql = "INSERT INTO ".$tableName." (".$cols.") VALUES (".$placeHolders.");";
+        $sql = $this->createPreparedStatement($tableName, $data[0]);
 
         for($i=1; $i<count($data); $i++) {
             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);

@@ -42,6 +42,8 @@ class PHPSpreadsheetDB {
         foreach($tables as $table) {
             $data = $this->spreadsheet->getData($table);
 
+            $this->db->deleteData($table);
+
             $this->db->insertData($table, $data);
         }
     }

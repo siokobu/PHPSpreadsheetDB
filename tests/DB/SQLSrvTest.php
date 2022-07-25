@@ -666,7 +666,7 @@ class SQLSrvTest extends TestCase
         $this->expectExceptionMessage("Invalid TableName. TableName:".$tableName);
 
         $db = new SQLSrv($this->serverName, $this->connectionInfo);
-        $db->insertData($tableName, []);
+        $db->deleteData($tableName, []);
     }
 
     private function n(string $c, int $n): string
