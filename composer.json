@@ -10,10 +10,10 @@
     }
   ],
   "require": {
-    "phpoffice/phpspreadsheet" : "~1.0"
+    "phpoffice/phpspreadsheet" : "~5.3"
   },
   "require-dev" : {
-    "phpunit/phpunit" : "^9.5"
+    "phpunit/phpunit" : "^10.5"
   },
   "autoload" : {
     "psr-4" : {

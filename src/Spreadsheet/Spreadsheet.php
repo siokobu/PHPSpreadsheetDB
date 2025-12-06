@@ -35,9 +35,17 @@ interface Spreadsheet
     public function getTableNames(): array;
 
     /**
-     * "importFromSpreadsheet"で利用する．スプレッドシートから抽出した登録対象のデータを２×２配列で取得する
-     * @param $tableName string データを抽出したテーブル名
-     * @return array スプレッドシートから抽出したインポート用の２×２配列データ
+     * "importFromSpreadsheet"で利用する．Spreadsheetから指定されたテーブル名のデータを抽出して返す
+     * [
+     *   "header" => ["colName1", "colName2", ...],
+     *   "datas" => [
+     *       [val11, val12, ...],
+     *       [val21, val22, ...],
+     *   ]
+     * ]
+     * 
+     * @param $tableName string Table name
+     * @return array Extracted Data From Spreadsheet
      * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
      */
     public function getData(string $tableName): array;
