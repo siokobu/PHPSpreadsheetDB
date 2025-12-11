@@ -252,7 +252,4 @@ class PostgresTest extends TestCase
         // Insert data using the method
         $db->insertData($tableName, $columns, $data);
     }
-
-
-
 }

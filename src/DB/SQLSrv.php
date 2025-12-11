@@ -115,10 +115,10 @@ class SQLSrv extends DB
 
             $sql = $this->createPreparedStatement($tableName, $columns);
             $stmt = sqlsrv_prepare($this->conn, $sql);
-
-            foreach($data as $row) {
-                $line++;
-            }   
+            // foreach($data as $row) {
+            //     $line++;
+            //     $stmt->execute($row);
+            // }   
             for($i=1; $i<count($data); $i++) {
                 $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
                 if(!sqlsrv_execute($stmt)) {
