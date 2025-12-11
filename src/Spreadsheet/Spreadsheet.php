@@ -8,6 +8,10 @@ interface Spreadsheet
 {
     Const EXCEL = "EXCEL";
 
+    public const COLUMNS_STR = "##columns##";
+
+    public const DATA_STR = "##data##";
+
     /**
      * 対象のテーブルを登録するためのシートを作成し、カラムを入力しておく
      * @param string $table シートを作成する対象のテーブル名
@@ -28,16 +32,16 @@ interface Spreadsheet
     public function deleteAllSheets();
 
     /**
-     * "importFromSpreadsheet"で利用する．スプレッドシートに記載のすべての登録対象となるテーブル名を配列として返す
+     * "import"で利用する．スプレッドシートに記載のすべての登録対象となるテーブル名を配列として返す
      * @return array テーブル名の配列
      * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
      */
     public function getTableNames(): array;
 
     /**
-     * "importFromSpreadsheet"で利用する．Spreadsheetから指定されたテーブル名のデータを抽出して返す
+     * "import"で利用する．Spreadsheetから指定されたテーブル名のデータを抽出して返す
      * [
-     *   "header" => ["colName1", "colName2", ...],
+     *   "columns" => ["colName1", "colName2", ...],
      *   "datas" => [
      *       [val11, val12, ...],
      *       [val21, val22, ...],

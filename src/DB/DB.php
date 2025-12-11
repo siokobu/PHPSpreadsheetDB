@@ -37,19 +37,19 @@ abstract class DB
     public abstract function getTableData(string $tableName): iterable;
 
     /**
-     * "importFromSpreadsheet"で利用する．対象となるテーブルのデータを登録前に全削除する
+     * "import"で利用する．対象となるテーブルのデータを登録前に全削除する
      * @param $tableName string 削除対象のテーブル名
      * @throws PHPSpreadsheetDBException データ削除時に発生したException
      */
     public abstract function deleteData(string $tableName): void;
 
     /**
-     * "importFromSpreadsheet"で利用する．対象となるデータをデータベースにインポートする
+     * "import"で利用する．対象となるデータをデータベースにインポートする
      * @param $tableName string インポート対象のテーブル名
      * @param $data array インポートするデータ。2x2配列となっており、1行目にはカラム名の列と認識する
      * @throws PHPSpreadsheetDBException DB登録時に発生したException
      */
-    public abstract function insertData(string $tableName, array $data);
+    public abstract function insertData(string $tableName, array $columns, array $data): void;
 
     protected function createPreparedStatement(string $tableName, array $columns): string
     {

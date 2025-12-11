@@ -4,6 +4,7 @@ namespace PHPSpreadsheetDB\DB;
 
 use phpDocumentor\Reflection\Types\Resource_;
 use PHPSpreadsheetDB\PHPSpreadsheetDBException;
+use Exception;
 
 class SQLSrv extends DB
 {
@@ -102,24 +103,35 @@ class SQLSrv extends DB
     /**
      * @inheritDoc
      */
-    public function insertData($tableName, $data)
+    public function insertData(string $tableName, array $columns, array $data): void
     {
         if(count($data) === 0) return;
 
-        sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
+        $line = 0;
+        try {
+            $this->conn->beginTransaction();
+            
+            sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
 
-        $sql = $this->createPreparedStatement($tableName, $data[0]);
+            $sql = $this->createPreparedStatement($tableName, $columns);
+            $stmt = sqlsrv_prepare($this->conn, $sql);
 
-        for($i=1; $i<count($data); $i++) {
-            $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
-            if(!sqlsrv_execute($stmt)) {
-                $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
-                $e->sqlErrors = sqlsrv_errors();
-                throw $e;
+            foreach($data as $row) {
+                $line++;
+            }   
+            for($i=1; $i<count($data); $i++) {
+                $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
+                if(!sqlsrv_execute($stmt)) {
+                    $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
+                    $e->sqlErrors = sqlsrv_errors();
+                    throw $e;
+                }
             }
-        }
 
-        sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
+            sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
+        } catch (Exception $e) {
+            throw new PHPSpreadsheetDBException($e->getMessage());
+        }
     }
 
     /**

@@ -35,7 +35,7 @@ class PHPSpreadsheetDB {
      * (new PHPSpreadsheetDB($db, $spreadsheet))->importFromSpreadsheet(); で実行することができる．
      * @throws PHPSpreadsheetDBException
      */
-    public function importFromSpreadsheet()
+    public function import()
     {
         $tables = $this->spreadsheet->getTableNames();
 
@@ -48,7 +48,7 @@ class PHPSpreadsheetDB {
         }
     }
 
-    public function exportToSpreadsheet($targetTables)
+    public function export($targetTables)
     {
         // 対象のブックからすべてのシートを削除する
         $this->spreadsheet->deleteAllSheets();

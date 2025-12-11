@@ -124,16 +124,18 @@ class Xlsx implements Spreadsheet
             $highestColumn = 1;
             $currentRow = 1;
             $dataMode = false;
+            $result['data'] = array();
             while(true) {
                 // 1列目の値を指示カラムとして確認する
-                $pointerCol = $sheet->getCellByColumnAndRow(1, $currentRow)->getValue();
+                $pointerCol = $sheet->getCell("A" . $currentRow)->getValue() ?? "";
 
                 // すべての値をカラム名として戻り値配列に格納する
-                if ($pointerCol === 'header' ) {
+                if ($pointerCol === Spreadsheet::COLUMNS_STR ) {
                     $currentColumn = 2;
                     $rowData = array();
                     while(true) {
-                        $val = trim($sheet->getCellByColumnAndRow($currentColumn, $currentRow)->getValue());
+                        $val = $sheet->getCell(Coordinate::stringFromColumnIndex($currentColumn) . $currentRow)->getValue();
+                        $val = $val === null ? "" : trim($val);
                         if(strlen($val) === 0) {
                             $highestColumn = $currentColumn - 1;
                             break;
@@ -142,55 +144,43 @@ class Xlsx implements Spreadsheet
                             $currentColumn = $currentColumn + 1;
                         }
                     }
-                    $result['header'] = $rowData;
-                    $currentRow = $currentRow + 1;
-                    continue;
+                    $result['columns'] = $rowData;
                 }
 
-                // 20行以内にヘッダがない場合エラーとする
-                if ($currentRow > 20 && !isset($result['header'])) {
-                    throw new PHPSpreadsheetDBException("Header row not found in first 20 rows.");
+                // 20行以内にデータモードでない場合エラーとする
+                if ($currentRow > 20 && $dataMode === false) {
+                    throw new PHPSpreadsheetDBException("Data row not found in first 20 rows.");
                 }
                 
-                // データモードに更新する．この行はデータ行としない
-                if ($pointerCol === 'data' ) {
-                    // ヘッダ行が未定義の場合エラーとする
-                    if (!isset($result['header'])) {
-                        throw new PHPSpreadsheetDBException("Header row must be defined before data row.");
-                    }
-                    $dataMode = true;
-                    $currentRow = $currentRow + 1;
-                    continue;
-                }
-                
-                // データモードの場合
-                if ($dataMode) {
-                    // 指示カラムの最初の２文字が"--"の場合、コメント行と判定
-                    if (substr($pointerCol, 0, 2) === '--') {
-                        $currentRow = $currentRow + 1;
-                        continue;
-                    }
-
+                // データモードの場合.指示カラムの最初の２文字が"--"の場合、コメント行と判定
+                if ($dataMode && substr($pointerCol, 0, 2) !== '--') {
                     $currentColumn = 2;
                     $isData = false;
                     $rowData = array();
                     while($currentColumn <= $highestColumn) {
-                        $val = trim($sheet->getCellByColumnAndRow($currentColumn, $currentRow)->getValue());
-                        if ($val === '<null>') {
-                            $val = null;
-                        }
+                        $val = $sheet->getCell(Coordinate::stringFromColumnIndex($currentColumn) . $currentRow)->getValue();
+                        $val = $val === null ? "" : trim($val);
                         array_push($rowData, $val);
                         $currentColumn = $currentColumn + 1;
                         strlen($val) > 0 && $isData = true;
                     }
-                    if (!$isData) {
-                        array_push($result['datas'], $rowData);
-                        $currentRow = $currentRow + 1;
-                        continue;
+                    if ($isData) {
+                        array_push($result['data'], $rowData);
                     } else {
                         break;
                     }
                 }
+
+                // データモードに更新する．この行はデータ行としない
+                if ($pointerCol === Spreadsheet::DATA_STR ) {
+                    // ヘッダ行が未定義の場合エラーとする
+                    if (!isset($result['columns'])) {
+                        throw new PHPSpreadsheetDBException("Columns row must be defined before data row.");
+                    }
+                    $dataMode = true;
+                }
+
+                $currentRow = $currentRow + 1;
             }
 
         } catch(Exception $e) {
