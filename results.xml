@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="PHPSpreadsheetDBTest\Spreadsheet\XlsxTest" file="/home/tomocky1/apps/PHPSpreadsheetDB/tests/Spreadsheet/XlsxTest.php" tests="1" assertions="9" errors="0" failures="0" skipped="0" time="0.193270">
+    <testcase name="testGetData1" file="/home/tomocky1/apps/PHPSpreadsheetDB/tests/Spreadsheet/XlsxTest.php" line="116" class="PHPSpreadsheetDBTest\Spreadsheet\XlsxTest" classname="PHPSpreadsheetDBTest.Spreadsheet.XlsxTest" assertions="9" time="0.193270"/>
+  </testsuite>
+</testsuites>

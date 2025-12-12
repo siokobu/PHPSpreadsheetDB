@@ -113,50 +113,81 @@ class Xlsx implements Spreadsheet
      */
     public function getData(string $tableName): array
     {
+        // 戻り値用の配列を初期化
+        $result = array();
+
         try {
             // worksheetオブジェクトを取得する
             $sheet = $this->spreadsheet->getSheetByName($tableName);
 
-            // 戻り値用の配列を初期化
-            $rows = array();
-
             // シートの一行目（カラム名行）を利用してカラム数を測定する
             $highestColumn = 1;
+            $currentRow = 1;
+            $dataMode = false;
+            $result['data'] = array();
             while(true) {
-                $val = trim($sheet->getCellByColumnAndRow($highestColumn, 1)->getValue());
-                if(strlen($val) == 0) {
-                    $highestColumn = $highestColumn - 1;
-                    break;
-                } else {
-                    $highestColumn = $highestColumn + 1;
-                }
-            }
+                // 1列目の値を指示カラムとして確認する
+                $pointerCol = $sheet->getCell("A" . $currentRow)->getValue() ?? "";
 
-            // 最終行までデータの取得を繰り返す
-            for ($i = 1; $i <= $sheet->getHighestRow(); $i++) {
-
-                // 戻り値の $rows に格納するための $columns 配列を初期化
-                $columns = array();
-
-                // 最終列までデータの取得を繰り返し、$columns に格納していく
-                for ($j = 1; $j <= $highestColumn; $j++) {
-                    $val = $sheet->getCellByColumnAndRow($j, $i)->getValue();
-                    if ($val == '<null>') {
-                        $val = null;
-                    } else if(strlen($val) == 0) {
-                        $val = "";
+                // すべての値をカラム名として戻り値配列に格納する
+                if ($pointerCol === Spreadsheet::COLUMNS_STR ) {
+                    $currentColumn = 2;
+                    $rowData = array();
+                    while(true) {
+                        $val = $sheet->getCell(Coordinate::stringFromColumnIndex($currentColumn) . $currentRow)->getValue();
+                        $val = $val === null ? "" : trim($val);
+                        if(strlen($val) === 0) {
+                            $highestColumn = $currentColumn - 1;
+                            break;
+                        } else {
+                            array_push($rowData, $val);
+                            $currentColumn = $currentColumn + 1;
+                        }
                     }
-                    array_push($columns, $val);
+                    $result['columns'] = $rowData;
                 }
 
-                // 作成した １行分の配列 $columns を 戻り値 $rows に格納する
-                array_push($rows, $columns);
+                // 20行以内にデータモードでない場合エラーとする
+                if ($currentRow > 20 && $dataMode === false) {
+                    throw new PHPSpreadsheetDBException("Data row not found in first 20 rows.");
+                }
+                
+                // データモードの場合.指示カラムの最初の２文字が"--"の場合、コメント行と判定
+                if ($dataMode && substr($pointerCol, 0, 2) !== '--') {
+                    $currentColumn = 2;
+                    $isData = false;
+                    $rowData = array();
+                    while($currentColumn <= $highestColumn) {
+                        $val = $sheet->getCell(Coordinate::stringFromColumnIndex($currentColumn) . $currentRow)->getValue();
+                        $val = $val === null ? "" : trim($val);
+                        $val = $val === '<null>' ? null : $val;
+                        array_push($rowData, $val);
+                        $currentColumn = $currentColumn + 1;
+                        strlen($val) > 0 && $isData = true;
+                    }
+                    if ($isData) {
+                        array_push($result['data'], $rowData);
+                    } else {
+                        break;
+                    }
+                }
+
+                // データモードに更新する．この行はデータ行としない
+                if ($pointerCol === Spreadsheet::DATA_STR ) {
+                    // ヘッダ行が未定義の場合エラーとする
+                    if (!isset($result['columns'])) {
+                        throw new PHPSpreadsheetDBException("Columns row must be defined before data row.");
+                    }
+                    $dataMode = true;
+                }
+
+                $currentRow = $currentRow + 1;
             }
 
         } catch(Exception $e) {
             throw new PHPSpreadsheetDBException($e);
         }
 
-        return $rows;
+        return $result;
     }
 }

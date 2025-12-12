@@ -3,6 +3,8 @@
 namespace PHPSpreadsheetDB\DB;
 
 use PHPSpreadsheetDB\PHPSpreadsheetDBException;
+use PDO;
+use PDOException;
 
 abstract class DB
 {
@@ -21,6 +23,8 @@ abstract class DB
     /** @var int LOB型を表す定数 */
     public const TYPE_LOB = 4;
 
+    protected PDO $pdo;
+
     /**
      * 指定したデータベースのカラム一覧を返す．
      * @param $tableName string カラム情報を取得する対象となるテーブル名
@@ -37,19 +41,50 @@ abstract class DB
     public abstract function getTableData(string $tableName): iterable;
 
     /**
-     * "importFromSpreadsheet"で利用する．対象となるテーブルのデータを登録前に全削除する
+     * "import"で利用する．対象となるテーブルのデータを登録前に全削除する
      * @param $tableName string 削除対象のテーブル名
      * @throws PHPSpreadsheetDBException データ削除時に発生したException
      */
-    public abstract function deleteData(string $tableName): void;
+    public function deleteData(string $tableNamne): void
+    {
+        try {
+            $this->pdo->beginTransaction();
+            $this->pdo->exec("DELETE FROM " . $tableNamne);
+            $this->pdo->commit();
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            $errmes = "Delete Data Failed. Table:" . $tableNamne . ", Message:" .  str_replace("\n", " ", $e->getMessage());
+            throw new PHPSpreadsheetDBException($errmes);
+        }
+    }
 
     /**
-     * "importFromSpreadsheet"で利用する．対象となるデータをデータベースにインポートする
+     * "import"で利用する．対象となるデータをデータベースにインポートする
      * @param $tableName string インポート対象のテーブル名
      * @param $data array インポートするデータ。2x2配列となっており、1行目にはカラム名の列と認識する
      * @throws PHPSpreadsheetDBException DB登録時に発生したException
      */
-    public abstract function insertData(string $tableName, array $data);
+    public function insertData(string $tableName, array $columns, array $data): void
+    {
+        if(count($data) === 0) return;
+
+        $line = 0;
+        try {
+            $this->pdo->beginTransaction();
+            $sql = $this->createPreparedStatement($tableName, $columns);
+            $stmt = $this->pdo->prepare($sql);
+            foreach($data as $row) {
+                $line++;
+                $stmt->execute($row);
+            }
+            $this->pdo->commit();
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            $errmes = "Invalid Data. Table:" . $tableName . " Line:" . $line . ", Message:" .  str_replace("\n", " ", $e->getMessage());
+            throw new PHPSpreadsheetDBException($errmes);
+        }
+    }
+
 
     protected function createPreparedStatement(string $tableName, array $columns): string
     {

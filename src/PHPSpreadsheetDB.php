@@ -35,7 +35,7 @@ class PHPSpreadsheetDB {
      * (new PHPSpreadsheetDB($db, $spreadsheet))->importFromSpreadsheet(); で実行することができる．
      * @throws PHPSpreadsheetDBException
      */
-    public function importFromSpreadsheet()
+    public function import()
     {
         $tables = $this->spreadsheet->getTableNames();
 
@@ -44,28 +44,29 @@ class PHPSpreadsheetDB {
 
             $this->db->deleteData($table);
 
-            $this->db->insertData($table, $data);
+            $this->db->insertData($table, $data['columns'], $data['data']);
         }
     }
 
-    public function exportToSpreadsheet($targetTables)
+    public function export($targetTables)
     {
-        // 対象のブックからすべてのシートを削除する
-        $this->spreadsheet->deleteAllSheets();
+        throw new PHPSpreadsheetDBException("Not Implemented Yet");
+        // // 対象のブックからすべてのシートを削除する
+        // $this->spreadsheet->deleteAllSheets();
 
-        foreach($targetTables as $table)
-        {
-            // 対象のテーブルからカラム情報を取得する
-            $columns = $this->db->getColumns($table);
+        // foreach($targetTables as $table)
+        // {
+        //     // 対象のテーブルからカラム情報を取得する
+        //     $columns = $this->db->getColumns($table);
 
-            // 新しくシートを作成し、カラム情報をセットする
-            $this->spreadsheet->createSheet($table, $columns);
+        //     // 新しくシートを作成し、カラム情報をセットする
+        //     $this->spreadsheet->createSheet($table, $columns);
 
-            // 対象のデータを取得する
-            $datas = $this->db->getTableData($table);
+        //     // 対象のデータを取得する
+        //     $datas = $this->db->getTableData($table);
 
-            // すべてのデータを書き込む
-            $this->spreadsheet->setTableDatas($table, $datas);
-        }
+        //     // すべてのデータを書き込む
+        //     $this->spreadsheet->setTableDatas($table, $datas);
+        // }
     }
 }

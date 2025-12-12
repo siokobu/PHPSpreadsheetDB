@@ -5,7 +5,7 @@ from DB to Spreadsheet and a function to import data from Spreadsheet to DB
 
 ## Supported Databases
 
-Microsoft SQL Server And SQLite is Supported For 
+Microsoft SQL Server And SQLite, PostgreSQL is Supported For 
 importing to Microsoft SQL Server from Microsoft Excel.
 
 ## Supported Spreadsheet
@@ -28,13 +28,26 @@ composer require --dev siokobu/phpspreadsheetdb
 ```
 
 ### How to use 
-
+- SQL Server
 ```php
-$connectionInfo = array(
-    "Database" => $database,
-    "UID" => $uid,
-    "PWD" => $pwd,
-    "CharacterSet" => $charset);
-$sqlSrv = new SQLSrv($hostname, $connectionInfo);
-$sqlSrv->insertData($tableName, $excel);
+$SQLSrv = new SQLSrv($host, $port, $database, $user, $password);
+$xlsx = new Xlsx($path);
+$phpSpreadsheetDB = new PHPSpreadsheetDB($SQLSrv, $xlsx);
+$phpSpreadsheetDB->import();
+```
+
+- Postgres
+```php
+$postgres = new Postgres($host, $port, $database, $user, $password);
+$xlsx = new Xlsx($path);
+$phpSpreadsheetDB = new PHPSpreadsheetDB($postgres, $xlsx);
+$phpSpreadsheetDB->import();
+```
+
+- SQLite
+```php
+$sqlite = new SQLite($filename);
+$xlsx = new Xlsx($path);
+$phpSpreadsheetDB = new PHPSpreadsheetDB($sqlite, $xlsx);
+$phpSpreadsheetDB->import();
 ```
