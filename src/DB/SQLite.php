@@ -8,11 +8,9 @@ use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 class SQLite extends DB
 {
 
-    private PDO $conn;
-
     public function __construct($filename)
     {
-        $this->conn = new PDO('sqlite:'.$filename);
+        $this->pdo = new PDO('sqlite:'.$filename);
     }
 
     /**
@@ -33,28 +31,28 @@ class SQLite extends DB
         return [];
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function deleteData(string $tableName): void
-    {
-        $result = $this->conn->exec("DELETE FROM ".$tableName.";");
-        if ($result === false) {
-            throw new PHPSpreadsheetDBException($this->conn->errorInfo(), $this->conn->errorCode());
-        }
-    }
+    // /**
+    //  * @inheritDoc
+    //  */
+    // public function deleteData(string $tableName): void
+    // {
+    //     $result = $this->conn->exec("DELETE FROM ".$tableName.";");
+    //     if ($result === false) {
+    //         throw new PHPSpreadsheetDBException($this->conn->errorInfo(), $this->conn->errorCode());
+    //     }
+    // }
 
-    /**
-     * @inheritDoc
-     */
-    public function insertData(string $tableName, array $data)
-    {
-        if (count($data) === 0) return;
+    // /**
+    //  * @inheritDoc
+    //  */
+    // public function insertData(string $tableName, array $data)
+    // {
+    //     if (count($data) === 0) return;
 
-        $stmt = $this->conn->prepare($this->createPreparedStatement($tableName, $data[0]));
+    //     $stmt = $this->conn->prepare($this->createPreparedStatement($tableName, $data[0]));
 
-        for($i=1; $i<count($data); $i++) {
-            $stmt->execute($data[$i]);
-        }
-    }
+    //     for($i=1; $i<count($data); $i++) {
+    //         $stmt->execute($data[$i]);
+    //     }
+    // }
 }

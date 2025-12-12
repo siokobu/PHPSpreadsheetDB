@@ -24,11 +24,13 @@ class PostgresTest extends TestCase
 
     public function setUp(): void
     {
-        $this->database = getenv('TEST_DB');
-        $this->port = getenv('TEST_DBPORT');
-        $this->host = getenv('TEST_DBHOST');
-        $this->user = getenv('TEST_DBUSER');
-        $this->password = getenv('TEST_DBPASS');
+        parent::setUp();
+        
+        $this->database = getenv('TEST_PG_DB');
+        $this->port = getenv('TEST_PG_DBPORT');
+        $this->host = getenv('TEST_PG_DBHOST');
+        $this->user = getenv('TEST_PG_DBUSER');
+        $this->password = getenv('TEST_PG_DBPASS');
 
         $this->pdo = new PDO(
             'pgsql:host='.$this->host.';port='.$this->port.';dbname='.$this->database,

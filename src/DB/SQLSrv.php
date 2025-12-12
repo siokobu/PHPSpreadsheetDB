@@ -4,7 +4,8 @@ namespace PHPSpreadsheetDB\DB;
 
 use phpDocumentor\Reflection\Types\Resource_;
 use PHPSpreadsheetDB\PHPSpreadsheetDBException;
-use Exception;
+use PDO;
+use PDOException;
 
 class SQLSrv extends DB
 {
@@ -19,26 +20,24 @@ class SQLSrv extends DB
      * @param string array("Database" => "<<データベース名>>", "UID" => "<<ユーザ名>>", "PWD" => "<<パスワード>>"); の形式でログイン情報を設定する
      * @throws PHPSpreadsheetDBException SQLServerへ接続できなかった場合にスローする
      */
-    public function __construct($serverName, $connectionInfo)
-    {
-        $this->conn = sqlsrv_connect($serverName, $connectionInfo);
-
-        if(!$this->conn) {
-            $sqlErrors = sqlsrv_errors();
-            $message = "";
-            if($sqlErrors[0]['SQLSTATE'] == '28000') {
-                $message = "Invalid User, Password";
-            } else if ($sqlErrors[0]['SQLSTATE'] == '08001') {
-                $message = "Invalid Host";
-            } else {
-                $message = "Connection Error";
-            }
-            $e = new PHPSpreadsheetDBException($message);
-            $e->sqlErrors = $sqlErrors;
-            throw $e;
+    public function __construct(
+                string $host, 
+        string $port = '5432', 
+        string $dbname, 
+        string $user, 
+        string $password
+    ) {
+        try {
+            $this->pdo = new PDO(
+                'sqlsrv:server='.$host.','.$port.';Database='.$dbname.';TrustServerCertificate=true',
+                $user,
+                $password
+            );
+            $this->pdo->setAttribute(PDO::SQLSRV_ATTR_ENCODING, PDO::SQLSRV_ENCODING_UTF8);
+        } catch (\PDOException $e) {
+            throw new PHPSpreadsheetDBException("Connection Error: " . $e->getMessage());
         }
     }
-
 
     /**
      * @param string $tableName
@@ -85,53 +84,65 @@ class SQLSrv extends DB
 
     }
 
-    public function deleteData(string $tableName): void
-    {
-        if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
-            $sqlErrors = sqlsrv_errors();
-            if($sqlErrors[0]['SQLSTATE'] == '42S02') {
-                $message = "Invalid TableName. TableName:".$tableName;
-            } else {
-                $message = "Error while Deleting Data. tablename:".$tableName;
-            }
-            $e = new PHPSpreadsheetDBException($message);
-            $e->sqlErrors = $sqlErrors;
-            throw $e;
-        }
-    }
+    // public function deleteData(string $tableName): void
+    // {
+    //     if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
+    //         $sqlErrors = sqlsrv_errors();
+    //         if($sqlErrors[0]['SQLSTATE'] == '42S02') {
+    //             $message = "Invalid TableName. TableName:".$tableName;
+    //         } else {
+    //             $message = "Error while Deleting Data. tablename:".$tableName;
+    //         }
+    //         $e = new PHPSpreadsheetDBException($message);
+    //         $e->sqlErrors = $sqlErrors;
+    //         throw $e;
+    //     }
+    // }
+
+    /**
+     * @inheritDoc
+     */
+    // public function insertData(string $tableName, array $columns, array $data): void
+    // {
+    //     if(count($data) === 0) return;
+
+    //     $line = 0;
+    //     try {
+    //         $this->conn->beginTransaction();
+            
+    //         sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
+
+    //         $sql = $this->createPreparedStatement($tableName, $columns);
+    //         $stmt = sqlsrv_prepare($this->conn, $sql);
+    //         // foreach($data as $row) {
+    //         //     $line++;
+    //         //     $stmt->execute($row);
+    //         // }   
+    //         for($i=1; $i<count($data); $i++) {
+    //             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
+    //             if(!sqlsrv_execute($stmt)) {
+    //                 $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
+    //                 $e->sqlErrors = sqlsrv_errors();
+    //                 throw $e;
+    //             }
+    //         }
+
+    //         sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
+    //     } catch (Exception $e) {
+    //         throw new PHPSpreadsheetDBException($e->getMessage());
+    //     }
+    // }
 
     /**
      * @inheritDoc
      */
     public function insertData(string $tableName, array $columns, array $data): void
     {
-        if(count($data) === 0) return;
+        $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." ON;");
 
-        $line = 0;
-        try {
-            $this->conn->beginTransaction();
-            
-            sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
+        parent::insertData($tableName, $columns, $data);
 
-            $sql = $this->createPreparedStatement($tableName, $columns);
-            $stmt = sqlsrv_prepare($this->conn, $sql);
-            // foreach($data as $row) {
-            //     $line++;
-            //     $stmt->execute($row);
-            // }   
-            for($i=1; $i<count($data); $i++) {
-                $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
-                if(!sqlsrv_execute($stmt)) {
-                    $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
-                    $e->sqlErrors = sqlsrv_errors();
-                    throw $e;
-                }
-            }
-
-            sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
-        } catch (Exception $e) {
-            throw new PHPSpreadsheetDBException($e->getMessage());
-        }
+        $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." OFF;");
     }
 
     /**

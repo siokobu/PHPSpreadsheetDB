@@ -160,6 +160,7 @@ class Xlsx implements Spreadsheet
                     while($currentColumn <= $highestColumn) {
                         $val = $sheet->getCell(Coordinate::stringFromColumnIndex($currentColumn) . $currentRow)->getValue();
                         $val = $val === null ? "" : trim($val);
+                        $val = $val === '<null>' ? null : $val;
                         array_push($rowData, $val);
                         $currentColumn = $currentColumn + 1;
                         strlen($val) > 0 && $isData = true;
