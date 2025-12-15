@@ -14,8 +14,9 @@ class XlsxTest extends TestCase
 {
     CONST TEMPDIR = __DIR__.DIRECTORY_SEPARATOR."files".DIRECTORY_SEPARATOR;
 
-    private $columnsStr = \PHPSpreadsheetDB\Spreadsheet\Spreadsheet::COLUMNS_STR;
-    private $dataStr = \PHPSpreadsheetDB\Spreadsheet\Spreadsheet::DATA_STR;
+    private $columnsStr = \PHPSpreadsheetDB\Spreadsheet\Xlsx::COLUMNS_STR;
+    
+    private $dataStr = \PHPSpreadsheetDB\Spreadsheet\Xlsx::DATA_STR;
 
     /** @test */
     public function testDeleteAllSheets()

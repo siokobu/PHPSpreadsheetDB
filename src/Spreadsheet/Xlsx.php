@@ -11,6 +11,10 @@ use PhpOffice\PhpSpreadsheet\Exception;
 
 class Xlsx implements Spreadsheet
 {
+    public const COLUMNS_STR = "##columns##";
+
+    public const DATA_STR = "##data##";
+
     private $spreadsheet;
 
     private $path;
@@ -130,7 +134,7 @@ class Xlsx implements Spreadsheet
                 $pointerCol = $sheet->getCell("A" . $currentRow)->getValue() ?? "";
 
                 // すべての値をカラム名として戻り値配列に格納する
-                if ($pointerCol === Spreadsheet::COLUMNS_STR ) {
+                if ($pointerCol === self::COLUMNS_STR ) {
                     $currentColumn = 2;
                     $rowData = array();
                     while(true) {
@@ -173,7 +177,7 @@ class Xlsx implements Spreadsheet
                 }
 
                 // データモードに更新する．この行はデータ行としない
-                if ($pointerCol === Spreadsheet::DATA_STR ) {
+                if ($pointerCol === Xlsx::DATA_STR ) {
                     // ヘッダ行が未定義の場合エラーとする
                     if (!isset($result['columns'])) {
                         throw new PHPSpreadsheetDBException("Columns row must be defined before data row.");

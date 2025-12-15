@@ -32,7 +32,6 @@ abstract class DB
      */
     public abstract function getColumns(string $tableName): iterable;
 
-
     /**
      * 指定したテーブルのデータをすべて返す
      * @param string $tableName データ取得対象とするテーブル名
@@ -84,7 +83,6 @@ abstract class DB
             throw new PHPSpreadsheetDBException($errmes);
         }
     }
-
 
     protected function createPreparedStatement(string $tableName, array $columns): string
     {

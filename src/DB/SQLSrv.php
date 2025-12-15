@@ -10,22 +10,20 @@ use PDOException;
 class SQLSrv extends DB
 {
     /**
-     * @var Resource_ DBへのコネクション情報
-     */
-    private $conn;
-
-    /**
      * PHPSpreadsheetDBで利用するためのDBオブジェクトを生成する
-     * @param string <<サーバ名>>\\<<インスタンス名>> の形式でサーバ名を設定する
-     * @param string array("Database" => "<<データベース名>>", "UID" => "<<ユーザ名>>", "PWD" => "<<パスワード>>"); の形式でログイン情報を設定する
-     * @throws PHPSpreadsheetDBException SQLServerへ接続できなかった場合にスローする
+     * @param string $host ホスト名
+     * @param string $port ポート番号
+     * @param string $dbname データベース名
+     * @param string $user ユーザ名
+     * @param string $password パスワード
+     * @throws PHPSpreadsheetDBException PostgreSQLへ接続できなかった場合にスローする
      */
     public function __construct(
                 string $host, 
-        string $port = '5432', 
-        string $dbname, 
-        string $user, 
-        string $password
+                string $port = '1433', 
+                string $dbname, 
+                string $user, 
+                string $password
     ) {
         try {
             $this->pdo = new PDO(
@@ -84,65 +82,22 @@ class SQLSrv extends DB
 
     }
 
-    // public function deleteData(string $tableName): void
-    // {
-    //     if(!sqlsrv_query($this->conn, 'DELETE FROM '.$tableName.';')){
-    //         $sqlErrors = sqlsrv_errors();
-    //         if($sqlErrors[0]['SQLSTATE'] == '42S02') {
-    //             $message = "Invalid TableName. TableName:".$tableName;
-    //         } else {
-    //             $message = "Error while Deleting Data. tablename:".$tableName;
-    //         }
-    //         $e = new PHPSpreadsheetDBException($message);
-    //         $e->sqlErrors = $sqlErrors;
-    //         throw $e;
-    //     }
-    // }
-
-    /**
-     * @inheritDoc
-     */
-    // public function insertData(string $tableName, array $columns, array $data): void
-    // {
-    //     if(count($data) === 0) return;
-
-    //     $line = 0;
-    //     try {
-    //         $this->conn->beginTransaction();
-            
-    //         sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." ON;");
-
-    //         $sql = $this->createPreparedStatement($tableName, $columns);
-    //         $stmt = sqlsrv_prepare($this->conn, $sql);
-    //         // foreach($data as $row) {
-    //         //     $line++;
-    //         //     $stmt->execute($row);
-    //         // }   
-    //         for($i=1; $i<count($data); $i++) {
-    //             $stmt = sqlsrv_prepare($this->conn, $sql, $data[$i]);
-    //             if(!sqlsrv_execute($stmt)) {
-    //                 $e = new PHPSpreadsheetDBException("Invalid Data. TableName:$tableName,Line:$i");
-    //                 $e->sqlErrors = sqlsrv_errors();
-    //                 throw $e;
-    //             }
-    //         }
-
-    //         sqlsrv_query($this->conn, "SET IDENTITY_INSERT ".$tableName." OFF;");
-    //     } catch (Exception $e) {
-    //         throw new PHPSpreadsheetDBException($e->getMessage());
-    //     }
-    // }
-
     /**
      * @inheritDoc
      */
     public function insertData(string $tableName, array $columns, array $data): void
     {
-        $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." ON;");
+        // Check if the table has an IDENTITY column
+        $ident = $this->pdo->query("SELECT IDENT_CURRENT('".$tableName."')")->fetchAll()[0][0];
 
+        // If there is an IDENTITY column, enable IDENTITY_INSERT
+        $ident !== null && $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." ON;");
+
+        // Call the parent method to perform the insertion
         parent::insertData($tableName, $columns, $data);
 
-        $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." OFF;");
+        // Disable IDENTITY_INSERT after insertion
+        $ident !== null && $this->pdo->exec("SET IDENTITY_INSERT ".$tableName." OFF;");
     }
 
     /**
