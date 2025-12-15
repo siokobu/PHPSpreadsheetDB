@@ -5,13 +5,11 @@ from DB to Spreadsheet and a function to import data from Spreadsheet to DB
 
 ## Supported Databases
 
-Microsoft SQL Server And SQLite, PostgreSQL is Supported For 
-importing to Microsoft SQL Server from Microsoft Excel.
+Microsoft SQL Server And SQLite, PostgreSQL, MariaDB is Supported.
 
 ## Supported Spreadsheet
 
 Only Microsoft Excel is Supported.
-And only import to Microsoft SQL Server from Microsoft Excel.
 
 ## Installation
 
@@ -30,7 +28,7 @@ composer require --dev siokobu/phpspreadsheetdb
 ### How to use 
 - SQL Server
 ```php
-$SQLSrv = new SQLSrv($host, $port, $database, $user, $password);
+$db = new SQLSrv($host, $port, $database, $user, $password);
 $xlsx = new Xlsx($path);
 $phpSpreadsheetDB = new PHPSpreadsheetDB($SQLSrv, $xlsx);
 $phpSpreadsheetDB->import();
@@ -38,16 +36,24 @@ $phpSpreadsheetDB->import();
 
 - Postgres
 ```php
-$postgres = new Postgres($host, $port, $database, $user, $password);
+$db = new Postgres($host, $port, $database, $user, $password);
 $xlsx = new Xlsx($path);
 $phpSpreadsheetDB = new PHPSpreadsheetDB($postgres, $xlsx);
 $phpSpreadsheetDB->import();
 ```
 
+- MariaDB
+```php
+$db = new MariaDB($host, $port, $database, $user, $password);
+$xlsx = new Xlsx($path);
+$phpSpreadsheetDB = new PHPSpreadsheetDB($db, $xlsx);
+$phpSpreadsheetDB->import();
+```
+
 - SQLite
 ```php
-$sqlite = new SQLite($filename);
+$db = new SQLite($filename);
 $xlsx = new Xlsx($path);
-$phpSpreadsheetDB = new PHPSpreadsheetDB($sqlite, $xlsx);
+$phpSpreadsheetDB = new PHPSpreadsheetDB($db, $xlsx);
 $phpSpreadsheetDB->import();
 ```

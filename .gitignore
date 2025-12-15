@@ -4,3 +4,6 @@
 /.phpunit.result.cache
 /tests/env
 /tests/temp
+.phpunit.cache
+.phpunit.result.cache
+composer.lock
