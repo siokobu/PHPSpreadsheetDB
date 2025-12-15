@@ -8,10 +8,6 @@ interface Spreadsheet
 {
     Const EXCEL = "EXCEL";
 
-    public const COLUMNS_STR = "##columns##";
-
-    public const DATA_STR = "##data##";
-
     /**
      * 対象のテーブルを登録するためのシートを作成し、カラムを入力しておく
      * @param string $table シートを作成する対象のテーブル名

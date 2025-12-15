@@ -6,7 +6,7 @@ use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 use PDO;
 use PDOException;
 
-class Postgres extends DB
+class MariaDB extends DB
 {
     /**
      * PHPSpreadsheetDBで利用するためのDBオブジェクトを生成する
@@ -19,12 +19,12 @@ class Postgres extends DB
      */
     public function __construct(
         string $host, 
-        string $port = '5432', 
+        string $port = '3306', 
         string $dbname, 
         string $user, 
         string $password)
     {
-        $dsn = 'pgsql:dbname='.$dbname.' host='.$host.' port='.$port;
+        $dsn = "mysql:dbname=$dbname;host=$host;port=$port";
         try {
             $this->pdo = new PDO($dsn, $user, $password);
             $this->pdo->setAttribute(PDO::SQLSRV_ATTR_ENCODING, PDO::SQLSRV_ENCODING_UTF8);
