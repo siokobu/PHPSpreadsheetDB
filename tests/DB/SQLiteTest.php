@@ -111,4 +111,37 @@ class SQLiteTest extends TestCase
         $this->sqlite_close($pdo);
         unlink($this->filename);
     }
+
+    /** @test   */
+    public function testColumnMeta()
+    {
+        // prepare schema
+        $schemas = [
+        self::TESTTB => "CREATE TABLE ".self::TESTTB." (
+                id INT PRIMARY KEY,
+                name VARCHAR(100)
+            )"
+        ];
+        $this->sqlite_createSchema($schemas);
+
+        // prepare data
+        $columns = ['id', 'name'];
+        $data = [
+            [1, 'Alice'],
+            [2, 'Bob'],
+        ];
+           
+        // Execute Test - insertData
+        $db = new SQLite($this->filename);
+        $db->insertData(self::TESTTB, $columns, $data);
+   
+        $pdo = $this->sqlite_connect();
+        $stmt = $pdo->query("SELECT * FROM ".self::TESTTB);
+        for ($i=0; $i<$stmt->columnCount(); $i++) {
+            $columns = $stmt->getColumnMeta($i);
+            print_r($columns);
+        }
+        $this->assertTrue(true);
+        $this->sqlite_close($pdo);
+    }    
 }

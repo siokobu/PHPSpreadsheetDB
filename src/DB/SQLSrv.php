@@ -65,22 +65,22 @@ class SQLSrv extends DB
     /**
      * @throws PHPSpreadsheetDBException
      */
-    public function getTableData($tableName): array
-    {
-        $result = array();
-        $sql = "SELECT * FROM " . $tableName;
-        if(!$stmt = sqlsrv_query($this->conn, $sql)) {
-            $e = new PHPSpreadsheetDBException();
-            $e->sqlErrors = sqlsrv_errors();
-            throw $e;
-        }
-        while($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            array_push($result, $row);
-        }
-        sqlsrv_free_stmt($stmt);
-        return $result;
+    // public function getTableData($tableName): array
+    // {
+    //     $result = array();
+    //     $sql = "SELECT * FROM " . $tableName;
+    //     if(!$stmt = sqlsrv_query($this->conn, $sql)) {
+    //         $e = new PHPSpreadsheetDBException();
+    //         $e->sqlErrors = sqlsrv_errors();
+    //         throw $e;
+    //     }
+    //     while($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+    //         array_push($result, $row);
+    //     }
+    //     sqlsrv_free_stmt($stmt);
+    //     return $result;
 
-    }
+    // }
 
     /**
      * @inheritDoc

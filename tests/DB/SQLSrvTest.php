@@ -320,4 +320,46 @@ class SQLSrvTest extends TestCase
         $this->assertSame(null, $result[2]['decimal_col']);
         $this->assertSame(null, $result[2]['numeric_col']);
     }
+
+    /** @test   */
+    public function testColumnMeta()
+    {
+        // prepare schema
+        $schemas = [
+        self::TESTTB => "CREATE TABLE ".self::TESTTB." (
+                id integer PRIMARY KEY,
+                tinyint_col tinyint,
+                smallint_col smallint,
+                int_col int,
+                money_col money,
+                char_col char(1),
+                varchar_col varchar(100),
+                nchar_col nchar(1),
+                nvarchar_col nvarchar(100),
+                ntext_col ntext,
+                date_col date,
+                datetime2_col datetime2,
+            )"
+        ];
+        $this->sqlsrv_createSchema($schemas);
+
+        // prepare data
+        $columns = ['id', 'tinyint_col', 'smallint_col', 'int_col', 'money_col', 'char_col', 'varchar_col', 'nchar_col', 'nvarchar_col', 'ntext_col', 'date_col', 'datetime2_col'];
+        $data = [
+            [1, 1, 1, 1, 1, 'A', 'string', 'A', 'string', 'string', '2024-01-01', '2024-01-01 10:00:00'],
+        ];
+        
+        // Execute Test - insertData
+        $db = new SQLSrv($this->host, $this->port,$this->db, $this->user, $this->pass);
+        $db->insertData(self::TESTTB, $columns, $data);
+
+        $pdo = $this->sqlsrv_connect();
+        $stmt = $pdo->query("SELECT * FROM ".self::TESTTB);
+        for ($i=0; $i<$stmt->columnCount(); $i++) {
+            $columns = $stmt->getColumnMeta($i);
+            print_r($columns);
+        }
+        $this->assertTrue(true);
+        $this->sqlsrv_close($pdo);
+    }    
 }

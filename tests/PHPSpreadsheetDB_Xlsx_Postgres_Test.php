@@ -8,12 +8,42 @@ use PHPSpreadsheetDB\Spreadsheet\Xlsx;
 use PDO;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PHPSpreadsheetDB\DB\Postgres;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PHPSpreadsheetDB_Xlsx_Postgres_Test extends TestCase
 {
-    const COLUMNS_STR = \PHPSpreadsheetDB\Spreadsheet\Xlsx::COLUMNS_STR;
+    private $columnsStr = self::COLUMNS_STR;
 
-    const DATA_STR = \PHPSpreadsheetDB\Spreadsheet\Xlsx::DATA_STR;
+    private $dataStr = self::DATA_STR;
+
+    private $table1 = 'TESTTB01';
+
+    private $table2 = 'TESTTB02';
+
+    private $path = self::TEMPDIR."testdata.xlsx";
+
+    private string $db;
+
+    private string $port;
+
+    private string $host;
+
+    private string $user;
+
+    private string $pass;
+
+    public function setUp(): void
+    {
+        // Call parent method
+        parent::setUp();
+        
+        // get environment variable
+        $this->db = getenv('TEST_PG_DB');
+        $this->port = getenv('TEST_PG_DBPORT');
+        $this->host = getenv('TEST_PG_DBHOST');
+        $this->user = getenv('TEST_PG_DBUSER');
+        $this->pass = getenv('TEST_PG_DBPASS');
+    }
 
     public function testImport(): void
     {
@@ -84,5 +114,142 @@ class PHPSpreadsheetDB_Xlsx_Postgres_Test extends TestCase
 
         // cleanup
         unlink($path);
+    }
+
+    public function testExport(): void
+    {
+        // prepare schema and data
+        $schemas = [
+            $this->table1 => "CREATE TABLE $this->table1 ("
+                . "id serial PRIMARY kEY,"
+                . "col11 integer, "
+                . "col12 varchar(100) "
+                . ");",
+            $this->table2 => "CREATE TABLE $this->table2 ("
+                . "id serial PRIMARY kEY,"
+                . "col21 integer, "
+                . "col22 varchar(100) "
+                . ");"
+        ];
+        $this->pgsql_createSchema($schemas);
+
+        $pdo = $this->pgsql_connect();
+        $pdo->exec("INSERT INTO $this->table1 (id, col11, col12) VALUES (1, 100, 'hoge'), (2, 200, 'fuga');");
+        $pdo->exec("INSERT INTO $this->table2 (id, col21, col22) VALUES (1, 1000, 'foo'), (2, 2000, 'var');");
+        $this->pgsql_close($pdo);
+
+        // execute test - export()
+        $postgres = new Postgres($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $xlsx = new Xlsx($this->path);
+
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($postgres, $xlsx);
+        $sql1 = "SELECT id, col12 FROM $this->table1 ORDER BY id ASC;";
+        $sql2 = "SELECT id, col21 FROM $this->table2 ORDER BY id ASC;";
+        $phpSpreadsheetDB->export([$this->table1 => $sql1, $this->table2 => $sql2]);
+
+        $sheet = IOFactory::load($this->path)->getSheetByName($this->table1);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), $this->columnsStr);
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'id');
+        $this->assertEquals($sheet->getCell('C1')->getValue(), 'col12');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), $this->dataStr);
+        $this->assertEquals($sheet->getCell('B2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('C2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('A3')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B3')->getValue(), '1');
+        $this->assertEquals($sheet->getCell('C3')->getValue(), 'hoge');
+        $this->assertEquals($sheet->getCell('A4')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B4')->getValue(), '2');
+        $this->assertEquals($sheet->getCell('C4')->getValue(), 'fuga');
+
+        $sheet = IOFactory::load($this->path)->getSheetByName($this->table2);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), $this->columnsStr);
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'id');
+        $this->assertEquals($sheet->getCell('C1')->getValue(), 'col21');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), $this->dataStr);
+        $this->assertEquals($sheet->getCell('B2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('C2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('A3')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B3')->getValue(), '1');
+        $this->assertEquals($sheet->getCell('C3')->getValue(), '1000');
+        $this->assertEquals($sheet->getCell('A4')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B4')->getValue(), '2');
+        $this->assertEquals($sheet->getCell('C4')->getValue(), '2000');
+
+        // cleanup
+        unlink($this->path);
+    }
+
+    public function testExportByTables(): void
+    {
+        // prepare schema and data
+        $schemas = [
+            $this->table1 => "CREATE TABLE $this->table1 ("
+                . "id serial PRIMARY kEY,"
+                . "col11 integer, "
+                . "col12 varchar(100) "
+                . ");",
+            $this->table2 => "CREATE TABLE $this->table2 ("
+                . "id serial PRIMARY kEY,"
+                . "col21 integer, "
+                . "col22 varchar(100) "
+                . ");"
+        ];
+        $this->pgsql_createSchema($schemas);
+
+        $pdo = $this->pgsql_connect();
+        $pdo->exec("INSERT INTO $this->table1 (id, col11, col12) VALUES (1, 100, 'hoge'), (2, 200, 'fuga');");
+        $pdo->exec("INSERT INTO $this->table2 (id, col21, col22) VALUES (1, 1000, 'foo'), (2, 2000, 'var');");
+        $this->pgsql_close($pdo);
+
+        // execute test - exportByTables()
+        $postgres = new Postgres($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $xlsx = new Xlsx($this->path);
+
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($postgres, $xlsx);
+        $phpSpreadsheetDB->exportByTables($this->table1, $this->table2);
+
+        // verify exported data
+        $sheet = IOFactory::load($this->path)->getSheetByName($this->table1);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), $this->columnsStr);
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'id');
+        $this->assertEquals($sheet->getCell('C1')->getValue(), 'col11');
+        $this->assertEquals($sheet->getCell('D1')->getValue(), 'col12');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), $this->dataStr);
+        $this->assertEquals($sheet->getCell('B2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('C2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('D2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('A3')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B3')->getValue(), '1');
+        $this->assertEquals($sheet->getCell('C3')->getValue(), '100');
+        $this->assertEquals($sheet->getCell('D3')->getValue(), 'hoge');
+        $this->assertEquals($sheet->getCell('A4')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B4')->getValue(), '2');
+        $this->assertEquals($sheet->getCell('C4')->getValue(), '200');
+        $this->assertEquals($sheet->getCell('D4')->getValue(), 'fuga');
+
+        $sheet = IOFactory::load($this->path)->getSheetByName($this->table2);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), $this->columnsStr);
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'id');
+        $this->assertEquals($sheet->getCell('C1')->getValue(), 'col21');
+        $this->assertEquals($sheet->getCell('D1')->getValue(), 'col22');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), $this->dataStr);
+        $this->assertEquals($sheet->getCell('B2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('C2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('D2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('A3')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B3')->getValue(), '1');
+        $this->assertEquals($sheet->getCell('C3')->getValue(), '1000');
+        $this->assertEquals($sheet->getCell('D3')->getValue(), 'foo');
+        $this->assertEquals($sheet->getCell('A4')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B4')->getValue(), '2');
+        $this->assertEquals($sheet->getCell('C4')->getValue(), '2000');
+        $this->assertEquals($sheet->getCell('D4')->getValue(), 'var');
+
+        // cleanup
+        unlink($this->path);
     }
 }

@@ -34,64 +34,6 @@ class Xlsx implements Spreadsheet
     }
 
     /**
-     * @throws PHPSpreadsheetDBException
-     */
-    public function deleteAllSheets()
-    {
-        try {
-            $sheetNames = $this->spreadsheet->getSheetNames();
-            foreach ($sheetNames as $sheetName) {
-                $sheetIndex = $this->spreadsheet->getIndex($this->spreadsheet->getSheetByName($sheetName));
-                $this->spreadsheet->removeSheetByIndex($sheetIndex);
-            }
-            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($this->spreadsheet);
-            $writer->save($this->path);
-        } catch (\Exception $e) {
-            throw new PHPSpreadsheetDBException($e);
-        }
-    }
-
-    public function createSheet($table, $columns)
-    {
-        $sheet = new Worksheet($this->spreadsheet, $table);
-        $rowarray = array();
-        foreach($columns as $column)
-        {
-            array_push($rowarray, $column['Name']);
-        }
-        $sheet->fromArray($rowarray, NULL, 'A1');
-
-        $this->spreadsheet->addSheet($sheet, 0);
-
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($this->spreadsheet);
-        $writer->save($this->path);
-
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function setTableDatas($tableName, $datas)
-    {
-        $sheet = $this->spreadsheet->getSheetByName($tableName);
-
-        $columns = array();
-        for ($i = 1; $i <= Coordinate::columnIndexFromString($sheet->getHighestColumn()); $i++) {
-            array_push($columns, $sheet->getCellByColumnAndRow($i, 1)->getValue());
-        }
-        $j = 2;
-        foreach($datas as $data) {
-            for($k = 0; $k < count($columns); $k++) {
-                $sheet->setCellValueByColumnAndRow($k+1, $j, $data[$columns[$k]]);
-            }
-            $j++;
-        }
-
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($this->spreadsheet);
-        $writer->save($this->path);
-    }
-
-    /**
      * @inheritDoc
      */
     public function getTableNames(): array
@@ -112,6 +54,7 @@ class Xlsx implements Spreadsheet
         return $result;
     }
 
+    
     /**
      * @inheritDoc
      */
@@ -193,5 +136,50 @@ class Xlsx implements Spreadsheet
         }
 
         return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function deleteAllSheets(): void
+    {
+        try {
+            $sheetNames = $this->spreadsheet->getSheetNames();
+            foreach ($sheetNames as $sheetName) {
+                $sheetIndex = $this->spreadsheet->getIndex($this->spreadsheet->getSheetByName($sheetName));
+                $this->spreadsheet->removeSheetByIndex($sheetIndex);
+            }
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($this->spreadsheet);
+            $writer->save($this->path);
+        } catch (\Exception $e) {
+            throw new PHPSpreadsheetDBException($e);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setTableData(string $table, array $data): void
+    {
+        $sheet = new Worksheet($this->spreadsheet, $table);
+
+        $sheet->setCellValue([1, 1], self::COLUMNS_STR);
+
+        for ($i = 0; $i < count($data['columns']); $i++) {
+            $sheet->setCellValue([$i + 2, 1], $data['columns'][$i]);
+        }
+
+        $sheet->setCellValue([1, 2], self::DATA_STR);
+
+        for ($i = 0; $i < count($data['data']); $i++) {
+            for ($j = 0; $j < count($data['columns']); $j++) {
+                $sheet->setCellValue([$j + 2, $i + 3], $data['data'][$i][$j]);
+            }
+        }
+
+        $this->spreadsheet->addSheet($sheet, 0);
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($this->spreadsheet);
+        $writer->save($this->path);
     }
 }
