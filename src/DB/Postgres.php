@@ -32,15 +32,4 @@ class Postgres extends DB
             throw new PHPSpreadsheetDBException("Connection Error: " . $e->getMessage());
         }
     }
-
-    public function getColumns(string $tableName): array
-    {
-        throw new PHPSpreadsheetDBException("Not Implemented Yet");
-    }   
-
-    public function getTableData(string $tableName): iterable
-    {
-        throw new PHPSpreadsheetDBException('Not implemented');
-    }
-
 }

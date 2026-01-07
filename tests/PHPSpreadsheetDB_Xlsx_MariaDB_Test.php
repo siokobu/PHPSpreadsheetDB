@@ -2,17 +2,15 @@
 
 namespace PHPSpreadsheetDBTest;
 
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PHPSpreadsheetDB\DB\SQLSrv;
-use PHPSpreadsheetDB\PHPSpreadsheetDB;
-use PHPSpreadsheetDB\PHPSpreadsheetDBException;
-use PHPSpreadsheetDB\Spreadsheet\Xlsx;
 use PDO;
-use PDOException;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PHPSpreadsheetDB\PHPSpreadsheetDB;
+use PHPSpreadsheetDB\Spreadsheet\Xlsx;
+use PHPSpreadsheetDB\DB\MariaDB;
 
-class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
+class PHPSpreadsheetDB_Xlsx_MariaDB_Test extends TestCase
 {
     private $columnsStr = self::COLUMNS_STR;
 
@@ -22,7 +20,7 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
 
     private $table2 = 'TESTTB02';
 
-    private $path = self::TEMPDIR . "testdata.xlsx";
+    private $path = self::TEMPDIR."testdata.xlsx";
 
     private string $db;
 
@@ -40,24 +38,35 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
         parent::setUp();
         
         // get environment variable
-        $this->db = getenv('TEST_SQLSRV_DB');
-        $this->port = getenv('TEST_SQLSRV_DBPORT');
-        $this->host = getenv('TEST_SQLSRV_DBHOST');
-        $this->user = getenv('TEST_SQLSRV_DBUSER');
-        $this->pass = getenv('TEST_SQLSRV_DBPASS');
+        $this->db = getenv('TEST_MARIA_DB');
+        $this->port = getenv('TEST_MARIA_DBPORT');
+        $this->host = getenv('TEST_MARIA_DBHOST');
+        $this->user = getenv('TEST_MARIA_DBUSER');
+        $this->pass = getenv('TEST_MARIA_DBPASS');
     }
 
-    /** @test */
-    public function testImport()
+    public function testImport(): void
     {
         // prepare schema 
         $schemas = [
-            $this->table1 => "CREATE TABLE $this->table1 (id integer identity(1,1) NOT NULL PRIMARY kEY, int_col integer,"
-                           ."float_col float, char_col nchar(10), str_col nvarchar(100),datetime_col datetime2);",
-            $this->table2 => "CREATE TABLE $this->table2 (id integer identity(1,1) NOT NULL PRIMARY kEY, int_col integer,"
-                           ."float_col float, char_col nchar(10), str_col nvarchar(100),datetime_col datetime2);",
+            $this->table1 => "CREATE TABLE $this->table1 ("
+                . "id int primary key auto_increment,"
+                . "int_col int, "
+                . "float_col float,"
+                . "char_col char(10),"
+                . "str_col varchar(100),"
+                . "datetime_col datetime "
+                . ");",
+            $this->table2 => "CREATE TABLE $this->table2 ("
+                . "id int primary key auto_increment,"
+                . "int_col int, "
+                . "float_col float,"
+                . "char_col char(10),"
+                . "str_col varchar(100),"
+                . "datetime_col datetime "
+                . ");"
         ];
-        $this->sqlsrv_createSchema($schemas);
+        $this->mariadb_createSchema($schemas);
 
         // prepare xlsx file
         $contents = [
@@ -76,65 +85,65 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
                 ]
             ]
         ];
-        $this->xlsx_createFile($this->path, $contents);
+        $path = $this->path;
+        $this->xlsx_createFile($path, $contents);
 
         // execute test - import()
-        $sqlsrv = new SQLSrv($this->host, $this->port, $this->db, $this->user, $this->pass);
-        $xlsx = new Xlsx($this->path);
+        $mariadb = new MariaDB($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $xlsx = new Xlsx($path);
 
-        $phpSpreadsheetDB = new PHPSpreadsheetDB($sqlsrv, $xlsx);
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($mariadb, $xlsx);
         $phpSpreadsheetDB->import();
 
         // verify inserted data
-        $pdo = $this->sqlsrv_connect();
-        $result = $pdo->query("SELECT * FROM $this->table1 ORDER BY id ASC;")->fetchAll(PDO::FETCH_ASSOC);
+        $pdo = $this->mariadb_connect();
+        $stmt = $pdo->query("SELECT * FROM $this->table1 ORDER BY id ASC;");
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->assertCount(2, $result);
-        $this->assertSame('1', $result[0]['id']);
-        $this->assertSame('100', $result[0]['int_col']);
-        $this->assertSame('3.1400000000000001', $result[0]['float_col']);
-        $this->assertSame('abcde     ', $result[0]['char_col']);
-        $this->assertSame('string', $result[0]['str_col']);
-        $this->assertSame('2021-10-10 23:59:59.0000000', $result[0]['datetime_col']);
-        $this->assertSame('2', $result[1]['id']);
-        $this->assertNull($result[1]['int_col']);
-        $this->assertNull($result[1]['float_col']);
+        $this->assertEquals(100, $result[0]['int_col']);
+        $this->assertEquals(3.14, $result[0]['float_col']);
+        $this->assertEquals('abcde', $result[0]['char_col']);
+        $this->assertEquals('string', $result[0]['str_col']);
+        $this->assertEquals('2021-10-10 23:59:59', $result[0]['datetime_col']);
+        $this->assertEquals(0, $result[1]['int_col']);
+        $this->assertEquals(0.0, $result[1]['float_col']);
         $this->assertNull($result[1]['char_col']);
         $this->assertNull($result[1]['str_col']);
         $this->assertNull($result[1]['datetime_col']);  
+        $this->mariadb_close($pdo);
 
         // cleanup
-        $this->sqlsrv_close($pdo);
+        $this->mariadb_close($pdo);
         unlink($this->path);
     }
 
-    
     public function testExport(): void
     {
         // prepare schema and data
         $schemas = [
             $this->table1 => "CREATE TABLE $this->table1 ("
-                . "id int PRIMARY kEY,"
-                . "col11 integer, "
-                . "col12 nvarchar(100) "
+                . "id int primary key auto_increment,"
+                . "col11 int, "
+                . "col12 varchar(100) "
                 . ");",
             $this->table2 => "CREATE TABLE $this->table2 ("
-                . "id int PRIMARY kEY,"
-                . "col21 integer, "
-                . "col22 nvarchar(100) "
+                . "id int primary key auto_increment,"
+                . "col21 int, "
+                . "col22 varchar(100) "
                 . ");"
         ];
-        $this->sqlsrv_createSchema($schemas);
+        $this->mariadb_createSchema($schemas);
 
-        $pdo = $this->sqlsrv_connect();
+        $pdo = $this->mariadb_connect();
         $pdo->exec("INSERT INTO $this->table1 (id, col11, col12) VALUES (1, 100, 'hoge'), (2, 200, 'fuga');");
         $pdo->exec("INSERT INTO $this->table2 (id, col21, col22) VALUES (1, 1000, 'foo'), (2, 2000, 'var');");
-        $this->sqlsrv_close($pdo);
+        $this->mariadb_close($pdo);
 
         // execute test - export()
-        $sqlsrv = new SQLSrv($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $mariadb = new MariaDB($this->host, $this->port, $this->db, $this->user, $this->pass);
         $xlsx = new Xlsx($this->path);
 
-        $phpSpreadsheetDB = new PHPSpreadsheetDB($sqlsrv, $xlsx);
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($mariadb, $xlsx);
         $sql1 = "SELECT id, col12 FROM $this->table1 ORDER BY id ASC;";
         $sql2 = "SELECT id, col21 FROM $this->table2 ORDER BY id ASC;";
         $phpSpreadsheetDB->export([$this->table1 => $sql1, $this->table2 => $sql2]);
@@ -170,7 +179,7 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
         $this->assertEquals($sheet->getCell('C4')->getValue(), '2000');
 
         // cleanup
-        $this->sqlsrv_close($pdo);
+        $this->mariadb_close($pdo);
         unlink($this->path);
     }
 
@@ -179,28 +188,28 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
         // prepare schema and data
         $schemas = [
             $this->table1 => "CREATE TABLE $this->table1 ("
-                . "id int PRIMARY kEY,"
-                . "col11 integer, "
-                . "col12 nvarchar(100) "
+                . "id int primary key auto_increment,"
+                . "col11 int, "
+                . "col12 varchar(100) "
                 . ");",
             $this->table2 => "CREATE TABLE $this->table2 ("
-                . "id int PRIMARY kEY,"
-                . "col21 integer, "
-                . "col22 nvarchar(100) "
+                . "id int primary key auto_increment,"
+                . "col21 int, "
+                . "col22 varchar(100) "
                 . ");"
         ];
-        $this->sqlsrv_createSchema($schemas);
+        $this->mariadb_createSchema($schemas);
 
-        $pdo = $this->sqlsrv_connect();
+        $pdo = $this->mariadb_connect();
         $pdo->exec("INSERT INTO $this->table1 (id, col11, col12) VALUES (1, 100, 'hoge'), (2, 200, 'fuga');");
         $pdo->exec("INSERT INTO $this->table2 (id, col21, col22) VALUES (1, 1000, 'foo'), (2, 2000, 'var');");
-        $this->sqlsrv_close($pdo);
+        $this->mariadb_close($pdo);
 
         // execute test - exportByTables()
-        $sqlsrv = new SQLSrv($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $mariadb = new MariaDB($this->host, $this->port, $this->db, $this->user, $this->pass);
         $xlsx = new Xlsx($this->path);
 
-        $phpSpreadsheetDB = new PHPSpreadsheetDB($sqlsrv, $xlsx);
+        $phpSpreadsheetDB = new PHPSpreadsheetDB($mariadb, $xlsx);
         $phpSpreadsheetDB->exportByTables($this->table1, $this->table2);
 
         // verify exported data
@@ -243,7 +252,7 @@ class PHPSpreadsheetDB_Xlsx_SQLSrv_Test extends TestCase
         $this->assertEquals($sheet->getCell('D4')->getValue(), 'var');
 
         // cleanup
-        $this->sqlsrv_close($pdo);
+        $this->mariadb_close($pdo);
         unlink($this->path);
     }
 }

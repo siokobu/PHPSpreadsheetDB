@@ -26,18 +26,36 @@ abstract class DB
     protected PDO $pdo;
 
     /**
-     * 指定したデータベースのカラム一覧を返す．
-     * @param $tableName string カラム情報を取得する対象となるテーブル名
-     * @return mixed array Name（カラム名）とType（型）を持つ連想配列の配列．Typeは、本クラスに定義されており、TYPE_NUMBER,TYPE_STRING,TYPE_DATETIME,TYPE_BOOL,TYPE_LOGのいずれか。
-     */
-    public abstract function getColumns(string $tableName): iterable;
-
-    /**
      * 指定したテーブルのデータをすべて返す
      * @param string $tableName データ取得対象とするテーブル名
      * @return mixed それぞれの要素に、ASSOCタイプの連想配列を格納したデータの配列
      */
-    public abstract function getTableData(string $tableName): iterable;
+    public function getTableData(string $sql): array
+    {
+        $columns = [];
+        $data = [];
+
+        $stmt = $this->pdo->query($sql);
+
+        for ($i = 0; $i < $stmt->columnCount(); $i++) {
+            $meta = $stmt->getColumnMeta($i);
+            $columns[$i] = $meta['name'];
+        }
+
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($result as $row) {
+            $line = [];
+            for ($i = 0; $i < count($row); $i++) {
+                array_push($line, $row[$columns[$i]]);
+            }
+            array_push($data, $line);
+        }
+
+        return [
+            'columns' => $columns,
+            'data' => $data,
+        ];   
+    }   
 
     /**
      * "import"で利用する．対象となるテーブルのデータを登録前に全削除する

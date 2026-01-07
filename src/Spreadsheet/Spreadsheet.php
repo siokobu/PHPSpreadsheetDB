@@ -6,47 +6,49 @@ use PHPSpreadsheetDB\PHPSpreadsheetDBException;
 
 interface Spreadsheet
 {
-    Const EXCEL = "EXCEL";
-
     /**
-     * 対象のテーブルを登録するためのシートを作成し、カラムを入力しておく
-     * @param string $table シートを作成する対象のテーブル名
-     * @param array $columns 作成したシートに入力するカラム
-     * @return void
-     */
-    public function createSheet($table, $columns);
-
-    /**
-     * 引数 $datas で受け取ったデータをスプレッドシート上に保存する
-     * @param $tableName string 保存先のスプレッドシートのパス
-     * @param $datas array スプレッドシートに書き込むデータ
-     * @throws
-     */
-    public function setTableDatas($tableName, $datas);
-
-    
-    public function deleteAllSheets();
-
-    /**
-     * "import"で利用する．スプレッドシートに記載のすべての登録対象となるテーブル名を配列として返す
-     * @return array テーブル名の配列
-     * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
+     * used by "import" method. create a sheet with given table name and columns
+     * @return array array of sheet names
+     * @throws PHPSpreadsheetDBException
      */
     public function getTableNames(): array;
 
     /**
-     * "import"で利用する．Spreadsheetから指定されたテーブル名のデータを抽出して返す
+     * use by "import" method. below return data structure is expected
      * [
      *   "columns" => ["colName1", "colName2", ...],
-     *   "datas" => [
+     *   "data" => [
      *       [val11, val12, ...],
      *       [val21, val22, ...],
      *   ]
      * ]
      * 
-     * @param $tableName string Table name
+     * @param string $table Table name
      * @return array Extracted Data From Spreadsheet
-     * @throws PHPSpreadsheetDBException スプレッドシート読み込み時に発生するException
+     * @throws PHPSpreadsheetDBException
      */
-    public function getData(string $tableName): array;
+    public function getData(string $table): array;
+
+    /**
+     * use by "export" method. delete all sheets in the spreadsheet
+     * @throws PHPSpreadsheetDBException 
+     */
+    public function deleteAllSheets(): void;
+
+    /**
+     * use by "export" method. set data to the given table(sheet) name
+     * below $data variables structure is expected
+     * [
+     *   "columns" => ["colName1", "colName2", ...],
+     *   "data" => [
+     *       [val11, val12, ...],
+     *       [val21, val22, ...],
+     *   ]
+     * ]
+     * 
+     * @param string $table Table Name
+     * @param array $data Data to Set. See Above for Structure
+     * @return void
+     */
+    public function setTableData(string $table, array $data): void;
 }

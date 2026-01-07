@@ -12,121 +12,57 @@ use PHPSpreadsheetDBTest\TestCase;
 
 class XlsxTest extends TestCase
 {
-    CONST TEMPDIR = __DIR__.DIRECTORY_SEPARATOR."files".DIRECTORY_SEPARATOR;
+    private $tempDir;
+
+    private $tempFile;
 
     private $columnsStr = \PHPSpreadsheetDB\Spreadsheet\Xlsx::COLUMNS_STR;
     
     private $dataStr = \PHPSpreadsheetDB\Spreadsheet\Xlsx::DATA_STR;
 
-    /** @test */
-    public function testDeleteAllSheets()
+    public function setUp(): void
     {
-        $path = self::TEMPDIR."XlsxTest_testDeleteAllSheets.xlsx";
-        $spreadsheet = new Spreadsheet();
-        $sheet = new Worksheet($spreadsheet, "hoge");
-        $spreadsheet->addSheet($sheet, 0);
-        $sheet = new Worksheet($spreadsheet, "fuga");
-        $spreadsheet->addSheet($sheet, 0);
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
-
-        $xlsx = new Xlsx($path);
-        $xlsx->deleteAllSheets();
-
-        $spreadsheet = IOFactory::load($path);
-        $count = $spreadsheet->getSheetCount();
-
-        $this->assertEquals(1,$count);
-    }
-
-    public function testCreateSheet()
-    {
-        $table = "hogeTable";
-        $columns = array( ['Name' => 'hoge', 'Type' => 0], ['Name' => 'fuga', 'Type' => 1]);
-        $path = self::TEMPDIR."XlsxTest_testCreateSheet.xlsx";
-
-        if(file_exists($path)) unlink($path);
-        $spreadsheet = new Spreadsheet();
-        $sheetNames = $spreadsheet->getSheetNames();
-        foreach ($sheetNames as $sheetName) {
-            $sheetIndex = $spreadsheet->getIndex($spreadsheet->getSheetByName($sheetName));
-            $spreadsheet->removeSheetByIndex($sheetIndex);
-        }
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $writer->save($path);
-
-        $xlsx = new Xlsx($path);
-        $xlsx->createSheet($table, $columns);
-
-        $spreadsheet = IOFactory::load($path);
-        $this->assertEquals($spreadsheet->getSheetByName($table)->getCell('A1')->getValue(), "hoge");
-        $this->assertEquals($spreadsheet->getSheetByName($table)->getCell('B1')->getValue(), "fuga");
-
-    }
-
-    /**
-     * @throws \PhpOffice\PhpSpreadsheet\Exception
-     * @throws Exception
-     */
-    public function testSetTableDatas()
-    {
-        $path = self::TEMPDIR."XlsxTest_testSettableDatas1.xlsx";
-        $table = "testtb";
-
-        if(file_exists($path)) unlink($path);
-        $spreadsheet = new Spreadsheet();
-        $sheet = new Worksheet($spreadsheet, $table);
-        $sheet->setCellValue('A1', 'col1');
-        $sheet->setCellValue('B1', 'col2');
-        $spreadsheet->addSheet($sheet);
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
-
-        $datas = array(array('col1' => 'hoge', 'col2' => 'fuga'), array('col1' => 'foo', 'col2' => 'var'));
-
-        $xlsx = new Xlsx($path);
-        $xlsx->setTableDatas($table, $datas);
-
-        $spreadsheet = IOFactory::load($path);
-        $sheet = $spreadsheet->getSheetByName($table);
-
-        $this->assertEquals($sheet->getCell('A1')->getValue(), 'col1');
-        $this->assertEquals($sheet->getCell('A2')->getValue(), 'hoge');
-        $this->assertEquals($sheet->getCell('A3')->getValue(), 'foo');
-        $this->assertEquals($sheet->getCell('B1')->getValue(), 'col2');
-        $this->assertEquals($sheet->getCell('B2')->getValue(), 'fuga');
-        $this->assertEquals($sheet->getCell('B3')->getValue(), 'var');
-
+        parent::setUp();
+        $this->tempDir = self::TEMPDIR;
+        $this->tempFile = $this->tempDir."XlsxTest.xlsx";
     }
 
     /** @test */
-    public function testGetAllTables()
+    public function testGetTableNames()
     {
-        $path = __DIR__."/docs/Xlsx_GetAllTables.xlsx";
         $tables = ["tablez01", "tabley02", "tablex03"];
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
+        // prepare xlsx with 3 sheets
         $spreadsheet = new Spreadsheet();
         foreach($tables as $table) {
             $sheet = new Worksheet($spreadsheet, $table);
             $spreadsheet->addSheet($sheet);
         }
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
-        $xlsx = new Xlsx($path);
+        // execute getTableNames
+        $xlsx = new Xlsx($this->tempFile);
         $tableNames = $xlsx->getTableNames();
 
+        // verify
+        $this->assertCount(3, $tableNames);
         $this->assertEquals($tables[0], $tableNames[0]);
         $this->assertEquals($tables[1], $tableNames[1]);
         $this->assertEquals($tables[2], $tableNames[2]);
     }
 
     /** @test */
-    public function testGetData_通常のパターン_様々な型()
+    public function testGetData_various_types()
     {
-        $path = self::TEMPDIR."XlsxTest_testGetData1.xlsx";
         $table = "tablez01";
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
         $sheet->setCellValue('A1', $this->columnsStr);
@@ -142,9 +78,9 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('D4', '3.14');
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
-        $xlsx = new Xlsx($path);
+        $xlsx = new Xlsx($this->tempFile);
         $data = $xlsx->getData($table);
 
         $this->assertCount(3, $data['columns']);
@@ -161,16 +97,17 @@ class XlsxTest extends TestCase
         $this->assertEquals('true',                $data['data'][1][1]);
         $this->assertEquals('3.14',                $data['data'][1][2]);
 
-        unlink($path);
+        unlink($this->tempFile);
     }
 
     /** @test */
-    public function testGetData_2行目ヘッダ_空文字_コメント()
+    public function testGetData_headersOnLine2_emptyString_Comment()
     {
-        $path = self::TEMPDIR."XlsxTest_testGetData2.xlsx";
+        // prepared table
         $table = "tablez01";
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
         $sheet->setCellValue('A1', 'ダミー');
@@ -193,9 +130,9 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('A8', '-- コメント行');
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
-        $xlsx = new Xlsx($path);
+        $xlsx = new Xlsx($this->tempFile);
         $data = $xlsx->getData($table);
         $this->assertEquals('col1', $data['columns'][0]);
         $this->assertEquals('col2', $data['columns'][1]);
@@ -206,20 +143,22 @@ class XlsxTest extends TestCase
         $this->assertEquals('AAA', $data['data'][1][0]);
         $this->assertEquals('',    $data['data'][1][1]);
         $this->assertEquals('CCC', $data['data'][1][2]);
-        $this->assertEquals('<null>', $data['data'][2][0]);
+        $this->assertNull($data['data'][2][0]);
         $this->assertEquals('bbbbb', $data['data'][2][1]);
         $this->assertEquals('',      $data['data'][2][2]);
 
-        unlink($path);
+        unlink($this->tempFile);
     }
 
     /** @test */
-    public function testGetData_headerより前のdataは無効()
+    public function testGetData_dataBeforeColumnsIInvalid()
     {
-        $path = self::TEMPDIR."XlsxTest_testGetData3.xlsx";
+        // prepared table
         $table = "tablez01";
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
         $sheet->setCellValue('A1', $this->dataStr);
@@ -236,23 +175,26 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('C4', 'Data22');
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
         $this->expectException(\PHPSpreadsheetDB\PHPSpreadsheetDBException::class);
 
-        $xlsx = new Xlsx($path);
+        $xlsx = new Xlsx($this->tempFile);
         $xlsx->getData($table);
 
-        unlink($path);
+        unlink($this->tempFile);
     }
 
-        /** @test */
-    public function testGetData_dataが20行目ならOK()
+    /** @test */
+    public function testGetData_dataColumnsOn20Rows()
     {
-        $path = self::TEMPDIR."XlsxTest_testGetData4.xlsx";
+        // prepared table
         $table = "tablez01";
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
+        // prepare xlsx with 3 sheets
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
         $sheet->setCellValue('A19', $this->columnsStr);
@@ -261,24 +203,30 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('B21', 'data11');
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
-        $xlsx = new Xlsx($path);
+        // execute getData
+        $xlsx = new Xlsx($this->tempFile);
         $data = $xlsx->getData($table);
 
+        // verify
         $this->assertEquals('header1', $data['columns'][0]);
         $this->assertEquals('data11', $data['data'][0][0]);
 
-        unlink($path);
+        // delete temp file
+        unlink($this->tempFile);
     }
 
     /** @test */
-    public function testGetData_dataが21行目ならOUT()
+    public function testGetData_dataColumnOn21Rows()
     {
         $path = self::TEMPDIR."XlsxTest_testGetData4.xlsx";
         $table = "tablez01";
 
-        if(file_exists($path)) unlink($path);
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
+        // prepare xlsx with 3 sheets
         $spreadsheet = new Spreadsheet();
         $sheet = new Worksheet($spreadsheet, $table);
         $sheet->setCellValue('A20', $this->columnsStr);
@@ -286,16 +234,82 @@ class XlsxTest extends TestCase
         $sheet->setCellValue('A21', $this->dataStr);
         $spreadsheet->addSheet($sheet);
         $spreadsheet->removeSheetByIndex($spreadsheet->getIndex($spreadsheet->getSheetByName('Worksheet')));
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
 
+        // expect exception
         $this->expectException(\PHPSpreadsheetDB\PHPSpreadsheetDBException::class);
 
-        $xlsx = new Xlsx($path);
+        // execute getData
+        $xlsx = new Xlsx($this->tempFile);
         $data = $xlsx->getData($table);
 
+        // verify
         $this->assertEquals('header1', $data['columns'][0]);
 
-        unlink($path);
+        // delete temp file
+        unlink($this->tempFile);
     }
 
+    /** @test */
+    public function testDeleteAllSheets()
+    {
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
+        // prepare xlsx with 2 sheets
+        $spreadsheet = new Spreadsheet();
+        $sheet = new Worksheet($spreadsheet, "hoge");
+        $spreadsheet->addSheet($sheet, 0);
+        $sheet = new Worksheet($spreadsheet, "fuga");
+        $spreadsheet->addSheet($sheet, 0);
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($this->tempFile);
+
+        // execute deleteAllSheets
+        $xlsx = new Xlsx($this->tempFile);
+        $xlsx->deleteAllSheets();
+
+        // verify all sheets are deleted. This messages are expected to be thrown because all sheets are deleted.
+        $this->expectException(\PhpOffice\PhpSpreadsheet\Exception::class);
+        $this->expectExceptionMessage('You tried to set a sheet active by the out of bounds index: 0. The actual number of sheets is 0.');
+
+        $spreadsheet = IOFactory::load($this->tempFile);
+    }
+
+    /** @test */
+    public function testSetTabledata()
+    {
+        // delete temp file if exists
+        file_exists($this->tempFile) && unlink($this->tempFile);
+
+        // prepare data
+        $table = "testtb";
+        $data = [
+            'columns' => ['col1', 'col2'],
+            'data' => [
+                ['hoge', 'fuga'],
+                ['foo', 'var']
+            ]
+        ];
+
+        $xlsx = new Xlsx($this->tempDir."XlsxTest.xlsx");
+        $xlsx->setTableData($table, $data);
+
+        $sheet = IOFactory::load($this->tempFile)->getSheetByName($table);
+
+        $this->assertEquals($sheet->getCell('A1')->getValue(), $this->columnsStr);
+        $this->assertEquals($sheet->getCell('B1')->getValue(), 'col1');
+        $this->assertEquals($sheet->getCell('C1')->getValue(), 'col2');
+        $this->assertEquals($sheet->getCell('A2')->getValue(), $this->dataStr);
+        $this->assertEquals($sheet->getCell('B2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('C2')->getValue(), "");
+        $this->assertEquals($sheet->getCell('A3')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B3')->getValue(), 'hoge');
+        $this->assertEquals($sheet->getCell('C3')->getValue(), 'fuga');
+        $this->assertEquals($sheet->getCell('A4')->getValue(), "");
+        $this->assertEquals($sheet->getCell('B4')->getValue(), 'foo');
+        $this->assertEquals($sheet->getCell('C4')->getValue(), 'var');
+
+        // delete temp file
+        unlink($this->tempFile);
+    }
 }

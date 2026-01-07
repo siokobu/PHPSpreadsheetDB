@@ -38,9 +38,9 @@ class MariaDB extends DB
         throw new PHPSpreadsheetDBException("Not Implemented Yet");
     }   
 
-    public function getTableData(string $tableName): iterable
-    {
-        throw new PHPSpreadsheetDBException('Not implemented');
-    }
+    // public function getTableData(string $tableName): iterable
+    // {
+    //     throw new PHPSpreadsheetDBException('Not implemented');
+    // }
 
 }

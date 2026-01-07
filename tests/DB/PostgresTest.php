@@ -298,7 +298,7 @@ class PostgresTest extends TestCase
 
     /**
      * @test
-     * @Todo エラーとなる値の検証、任意の精度を持つ数(numeric,decimal)の値の検証
+     * @Todo エラーとなる値の検証、通貨型（money）、文字型（varchar,char,text）の値の検証
      */
     public function testInsertData_通貨型_文字型(): void
     {
@@ -347,5 +347,156 @@ class PostgresTest extends TestCase
         // cleanup
         $pdo->exec("DROP TABLE IF EXISTS " . self::TESTTB);
         $this->pgsql_close($pdo);
+    }
+
+        /**
+     * @test
+     * @Todo エラーとなる値の検証、日付時刻データ型（timestamp, date, time, interval）の値の検証
+     */
+    public function testInsertData_日付時刻データ型(): void
+    {
+        // prepare schema
+        $schemas = [
+            self::TESTTB => "CREATE TABLE " . self::TESTTB . " (
+                id SERIAL PRIMARY KEY,
+                timestamp_without_col timestamp without time zone,
+                timestamp_with_col timestamp with time zone,
+                date_col date,
+                time_without_col time without time zone,
+                time_with_col time with time zone,
+                interval_col interval
+            )"
+        ];
+        $this->pgsql_createSchema($schemas);
+
+        // Data to insert
+        $columns = ['timestamp_without_col','timestamp_with_col','date_col','time_without_col','time_with_col','interval_col'];
+        $data = [
+            ['2023-01-01 12:00:00', '2023-01-01 12:00:00+09', '2023-01-01', '12:00:00', '12:00:00+09', '1 day'],
+            [null, null, null, null, null, null],
+            ['2023-12-31 23:59:59', '2023-12-31 23:59:59+09', '2023-12-31', '23:59:59', '23:59:59+09', '-1 day'],
+        ];
+
+        // Execute Test
+        $db = new Postgres($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $db->insertData(self::TESTTB, $columns, $data);
+
+        // Verify insertion
+        $pdo = $this->pgsql_connect();
+        $result = $pdo->query("SELECT * FROM ".self::TESTTB)->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->assertCount(3, $result);
+        $this->assertEquals('2023-01-01 12:00:00', $result[0]['timestamp_without_col']);
+        $this->assertEquals('2023-01-01 03:00:00+00', $result[0]['timestamp_with_col']);
+        $this->assertEquals('2023-01-01', $result[0]['date_col']);
+        $this->assertEquals('12:00:00', $result[0]['time_without_col']);
+        $this->assertEquals('12:00:00+09', $result[0]['time_with_col']);
+        $this->assertEquals('1 day', $result[0]['interval_col']);
+
+        // cleanup
+        $pdo->exec("DROP TABLE IF EXISTS " . self::TESTTB);
+        $this->pgsql_close($pdo);
+    }
+
+    /** @test */
+    public function testColumnMeta_メタデータ取得の確認のため具体的なメソッドはテストしない()
+    {
+        // prepare schema
+        $schemas = [
+        self::TESTTB => "CREATE TABLE ".self::TESTTB." (
+                id INT PRIMARY KEY,
+                smallint_col SMALLINT,
+                integer_col INTEGER,
+                bigint_col BIGINT,
+                decimal_col DECIMAL(10,2),
+                numeric_col NUMERIC(10,2),
+                real_col REAL,
+                double_precision_col DOUBLE PRECISION,
+                money_col MONEY,
+                varchar_col varchar(100),
+                char_col char(10),
+                text_col TEXT
+            )"
+        ];
+        $this->pgsql_createSchema($schemas);
+
+        // prepare data
+        $columns = ['id', 'smallint_col','integer_col','bigint_col','decimal_col','numeric_col','real_col','double_precision_col','money_col','varchar_col','char_col','text_col'];
+        $data = [
+                [1, 10, 100, 1000, 123.45, 678.90, 1.23, 4.56, 789.01, 'Alice', 'Alice', 'Alice'],
+                [2, 20, 200, 2000, 234.56, 789.01, 2.34, 5.67, 890.12, 'Bob', 'Bob', 'Bob'],
+        ];
+           
+        // Execute Test - insertData
+        $db = new Postgres($this->host, $this->port,$this->db, $this->user, $this->pass);
+        $db->insertData(self::TESTTB, $columns, $data);
+   
+        $pdo = $this->pgsql_connect();
+        $stmt = $pdo->query("SELECT * FROM ".self::TESTTB);
+        for ($i=0; $i<$stmt->columnCount(); $i++) {
+            $columns = $stmt->getColumnMeta($i);
+            print_r($columns);
+        }
+        $this->assertTrue(true);
+        $this->pgsql_close($pdo);
+    }
+
+    /**
+     * pgsql固有のメソッドでもPDOとほぼ同じデータを取得するため利用しない
+     * 正しく取得したい場合は、select * from information_schema.columns を利用する必要がある
+     * @test
+     */
+    public function testColumnMeta_メタデータ取得をpgsql固有のメソッドで確認する()
+    {
+        $conn = pg_connect("host=".$this->host." port=".$this->port." dbname=".$this->db." user=".$this->user." password=".$this->pass);
+        // prepare schema
+        $schemas = [
+        self::TESTTB => "CREATE TABLE ".self::TESTTB." (
+                id INT PRIMARY KEY,
+                smallint_col SMALLINT,
+                integer_col INTEGER,
+                bigint_col BIGINT,
+                decimal_col DECIMAL(10,2),
+                numeric_col NUMERIC(10,2),
+                real_col REAL,
+                double_precision_col DOUBLE PRECISION,
+                money_col MONEY,
+                varchar_col varchar(100),
+                char_col char(10),
+                text_col TEXT
+            )"
+        ];
+        pg_query_params($conn, "DROP TABLE IF EXISTS ".self::TESTTB, []);
+        pg_query_params($conn, $schemas[self::TESTTB], []);
+        $meta = pg_meta_data($conn, self::TESTTB, true);
+        print_r($meta);
+        pg_close($conn);
+
+        $this->assertTrue(true);
+    }
+
+    /** @test */
+    public function testGetTableData(): void
+    {
+        // prepare schema
+        $schemas = [
+            self::TESTTB => "CREATE TABLE ".self::TESTTB." (
+                id INT PRIMARY KEY,
+                dummy char(10),
+                name VARCHAR(100)
+            )"
+        ];
+        $this->pgsql_createSchema($schemas);
+
+        $pdo = $this->pgsql_connect();
+        $pdo->exec("INSERT INTO ".self::TESTTB." (id, dummy, name) VALUES (1, 'a', 'Alice'), (2, 'b', 'Bob')");
+
+        $db = new Postgres($this->host, $this->port, $this->db, $this->user, $this->pass);
+        $result = $db->getTableData("SELECT id, name FROM ".self::TESTTB);
+
+        $this->assertEquals(['id', 'name'], $result['columns']);
+        $this->assertEquals([[1, 'Alice'], [2, 'Bob']], $result['data']);
+        $this->pgsql_close($pdo);
+
     }
 }
